@@ -1,0 +1,124 @@
+1. Business Configuration
+
+Company Information
+Business name
+Address
+Contact number
+Email
+Tax ID/VAT number
+Logo upload
+Financial Settings
+Default tax rate
+Currency symbol
+Payment methods accepted
+Invoice numbering format
+Default payment terms
+Repair Defaults
+Default warranty period (days)
+Standard labor rates
+Default repair priority
+Estimated completion days
+2. Inventory Management
+
+Stock Settings
+Low stock threshold
+Reorder quantity
+Default supplier
+Barcode scanning enabled/disabled
+Parts Pricing
+Default markup percentage
+Discount policies
+Bulk pricing rules
+3. Customer Management
+
+Customer Defaults
+Required customer fields
+Default communication method (email/SMS)
+Customer notification preferences
+Loyalty program settings
+Privacy Settings
+Data retention period
+GDPR compliance options
+Customer data export format
+4. Workflow & Automation
+
+Ticket Automation
+Automatic status changes
+Escalation rules
+Default technician assignments
+Automatic follow-up reminders
+Notification Settings
+Email/SMS alerts for:
+New tickets
+Status changes
+Parts arrivals
+Payment reminders
+5. User Interface
+
+Display Preferences
+Theme (light/dark/custom)
+Font size
+Default view (list/card)
+Dashboard widgets
+Data Presentation
+Date format
+Time format
+Number formatting
+Default columns in tables
+6. System & Security
+
+User Management
+Password policies
+Session timeout
+Login attempts limit
+Two-factor authentication
+Data Management
+Auto-backup settings
+Backup location
+Backup frequency
+Data export options
+7. Integration Settings
+
+External Services
+Email server configuration
+SMS gateway settings
+Accounting software integration
+Payment gateway setup
+8. Hardware & Devices
+
+Peripheral Settings
+Receipt printer configuration
+Barcode scanner setup
+Signature pad integration
+Label printer settings
+9. Reporting
+
+Report Defaults
+Default report period
+Auto-generated reports
+Report save location
+Export formats (PDF/Excel)
+10. Advanced Settings
+
+Diagnostics
+Logging level
+Error reporting
+System health check
+Database maintenance
+Implementation Tips:
+
+Organize in Tabs/Categories: Group related settings together for better UX
+Three-Level Settings:
+Basic: Essential settings visible by default
+Advanced: Click to expand technical options
+Expert: Hidden behind "Show more" for rare changes
+Visual Indicators:
+Highlight changed but unsaved settings
+Mark mandatory fields
+Show default values option
+Validation:
+Real-time validation for numeric fields
+Warning for potentially dangerous changes
+Confirmation for critical changes
+Search Functionality: Quick find for large settings collections
+Presets: Offer common configuration profiles (e.g., "Small Shop", "Multi-Location")

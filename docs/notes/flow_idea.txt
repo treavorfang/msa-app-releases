@@ -1,0 +1,4 @@
+MSA - Mobile Service Accounting DataFlow Idea
+
+Customer -> Deivce or Devices
+Device -> Ticket (One Ticket per Deivce)

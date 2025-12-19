@@ -1,0 +1,14 @@
+# Production Configuration
+# Usage: python main.py --flagfile=config/production.flags
+
+--env=production
+--debug=false
+--db_debug=false
+--log_level=WARNING
+--theme=dark
+--language=burmese
+--enable_analytics=true
+--enable_reports=true
+--enable_eventbus=true
+--cache_size_mb=256
+--max_workers=8

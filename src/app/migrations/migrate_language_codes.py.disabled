@@ -1,0 +1,74 @@
+"""
+Migration script to update language settings from old full names to new language codes.
+
+This script should be run once to migrate existing user settings.
+"""
+
+# Language name to code mapping
+LANGUAGE_MIGRATION_MAP = {
+    'English': 'en',
+    'Burmese - ဗမာ': 'my',
+    'Burmese': 'my',  # In case some users have just "Burmese"
+    'Chinese (Simplified) - 简体中文': 'zh',
+    'Chinese': 'zh',
+    'Hindi - हिंदी': 'hi',
+    'Hindi': 'hi',
+    'Japanese - 日本語': 'ja',
+    'Japanese': 'ja',
+    'Korean - 한국어': 'ko',
+    'Korean': 'ko',
+    'Thai - ไทย': 'th',
+    'Thai': 'th',
+    'Vietnamese - Tiếng Việt': 'vi',
+    'Vietnamese': 'vi'
+}
+
+def migrate_language_settings(container):
+    """
+    Migrate all user language settings from old names to new codes.
+    
+    Args:
+        container: DependencyContainer with settings_service
+    """
+    settings_service = container.settings_service
+    
+    # Get all users
+    try:
+        # Check if user_service exists
+        if not hasattr(container, 'user_service'):
+            print("⚠️  user_service not available in container, skipping language migration")
+            return True
+        
+        users = container.user_service.list_users()
+        migrated_count = 0
+        
+        for user in users:
+            settings = settings_service.get_user_settings(user.id)
+            old_language = settings.get('language')
+            
+            if old_language and old_language in LANGUAGE_MIGRATION_MAP:
+                new_language = LANGUAGE_MIGRATION_MAP[old_language]
+                settings['language'] = new_language
+                settings_service.save_user_settings(user.id, settings)
+                print(f"✅ Migrated user {user.username}: '{old_language}' → '{new_language}'")
+                migrated_count += 1
+            elif old_language and len(old_language) == 2:
+                # Already a language code, skip
+                print(f"ℹ️  User {user.username} already using language code: '{old_language}'")
+            elif old_language:
+                # Unknown language, default to 'en'
+                print(f"⚠️  Unknown language '{old_language}' for user {user.username}, defaulting to 'en'")
+                settings['language'] = 'en'
+                settings_service.save_user_settings(user.id, settings)
+                migrated_count += 1
+        
+        print(f"\n✅ Migration complete! Updated {migrated_count} user(s)")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Migration failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    print("This migration should be run from the application context with a container instance.")
+    print("Import and call migrate_language_settings(container) from your app.")

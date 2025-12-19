@@ -1,0 +1,7 @@
+classDiagram
+    class Permission {
+        +role: ForeignKey~Role~
+        +name: CharField
+        +code: CharField
+    }
+    Permission "1" --> "1" Role

@@ -1,0 +1,9 @@
+qt.qpa.fonts: Populating font family aliases took 443 ms. Replace uses of missing font family "-apple-system" with one that exists to avoid this cost. 
+2025-12-06 15:28:45.091 Python[22089:260341] TSMSendMessageToUIServer: CFMessagePortSendRequest FAILED(-1) to send to port com.apple.tsm.uiserver
+2025-12-06 15:28:45.093 Python[22089:260341] TSMSendMessageToUIServer: CFMessagePortSendRequest FAILED(-1) to send to port com.apple.tsm.uiserver
+2025-12-06 15:28:45.093 Python[22089:260341] TSMSendMessageToUIServer: CFMessagePortSendRequest FAILED(-1) to send to port com.apple.tsm.uiserver
+2025-12-06 15:28:45.095 Python[22089:260341] TSMSendMessageToUIServer: CFMessagePortSendRequest FAILED(-1) to send to port com.apple.tsm.uiserver
+2025-12-06 15:28:45.095 Python[22089:260341] TSMSendMessageToUIServer: CFMessagePortSendRequest FAILED(-1) to send to port com.apple.tsm.uiserver
+I1206 15:28:54.799499 8456511616 category.py:224] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+I1206 15:28:54.800538 8456511616 category.py:224] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+qt.text.font.db: OpenType support missing for "Roboto", script 11

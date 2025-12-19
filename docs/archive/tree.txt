@@ -1,0 +1,1818 @@
+.
+├── analytics_redesign_summary.md
+├── backup
+│   ├── backup_20251130_180813
+│   │   ├── analytics_redesign_summary.md
+│   │   ├── dashboard_test_results.md
+│   │   ├── database
+│   │   ├── docs
+│   │   │   ├── ASCII_OUTPUT
+│   │   │   │   ├── device_detail.txt
+│   │   │   │   ├── device_repair_parts_used.txt
+│   │   │   │   ├── new_repair_ticket.txt
+│   │   │   │   ├── repair_ticket_label.txt
+│   │   │   │   └── ticket_opening_form.txt
+│   │   │   ├── mermaid_diagram
+│   │   │   │   ├── 00_MASTER_CLASS_DIAGRAM.mmd
+│   │   │   │   ├── 00_MASTER_DIAGRAM.mmd
+│   │   │   │   ├── 01_AUDIT_LOG.mmd
+│   │   │   │   ├── 02_BASE_MODEL.mmd
+│   │   │   │   ├── 03_CUSTOMER.mmd
+│   │   │   │   ├── 04_DEVICE.mmd
+│   │   │   │   ├── 05_PART.mmd
+│   │   │   │   ├── 06_PERMISSION.mmd
+│   │   │   │   ├── 07_REPAIR_PART.mmd
+│   │   │   │   ├── 08_ROLE.mmd
+│   │   │   │   ├── 09_TICKET.mmd
+│   │   │   │   ├── 10_USER.mmd
+│   │   │   │   ├── 11_NEW_TABLE.mmd
+│   │   │   │   ├── database_schma.mmd
+│   │   │   │   └── database_schma.png
+│   │   │   └── notes
+│   │   │       ├── data_flow copy.mmd
+│   │   │       ├── data_flow.mmd
+│   │   │       ├── flow_idea.txt
+│   │   │       ├── repair_shop_management.png
+│   │   │       └── settings_ui.txt
+│   │   ├── fix_completed_tickets.py
+│   │   ├── fix_invoice_index.py
+│   │   ├── invoices_report.pdf
+│   │   ├── migrations
+│   │   │   ├── add_invoice_discount_shipping.py
+│   │   │   └── add_purchase_returns.py
+│   │   ├── msadb.sqlite
+│   │   ├── src
+│   │   │   └── app
+│   │   │       ├── api
+│   │   │       ├── config
+│   │   │       │   ├── brand_model_compact.ini
+│   │   │       │   ├── brand_model.ini
+│   │   │       │   ├── config_loader.py
+│   │   │       │   ├── config_manager.py
+│   │   │       │   ├── config.py
+│   │   │       │   ├── constants.py
+│   │   │       │   ├── database.py
+│   │   │       │   └── phone_error.ini
+│   │   │       ├── controllers
+│   │   │       │   ├── auth_controller.py
+│   │   │       │   ├── branch_controller.py
+│   │   │       │   ├── business_settings_controller.py
+│   │   │       │   ├── category_controller.py
+│   │   │       │   ├── customer_controller.py
+│   │   │       │   ├── device_controller.py
+│   │   │       │   ├── inventory_controller.py
+│   │   │       │   ├── invoice_controller.py
+│   │   │       │   ├── invoice_item_controller.py
+│   │   │       │   ├── job_controller.py
+│   │   │       │   ├── part_controller.py
+│   │   │       │   ├── payment_controller.py
+│   │   │       │   ├── purchase_order_controller.py
+│   │   │       │   ├── purchase_return_controller.py
+│   │   │       │   ├── repair_part_controller.py
+│   │   │       │   ├── report_controller.py
+│   │   │       │   ├── setting_controller.py
+│   │   │       │   ├── supplier_controller.py
+│   │   │       │   ├── technician_bonus_controller.py
+│   │   │       │   ├── technician_controller.py
+│   │   │       │   ├── technician_performance_controller.py
+│   │   │       │   ├── theme_controller.py
+│   │   │       │   ├── ticket_controller.py
+│   │   │       │   ├── warranty_controller.py
+│   │   │       │   └── work_log_controller.py
+│   │   │       ├── core
+│   │   │       │   ├── app.py
+│   │   │       │   ├── business_services.py
+│   │   │       │   ├── controllers.py
+│   │   │       │   ├── core_services.py
+│   │   │       │   ├── dependency_container.py
+│   │   │       │   └── repositories.py
+│   │   │       ├── database
+│   │   │       │   ├── msa.db-shm
+│   │   │       │   └── msa.db-wal
+│   │   │       ├── dtos
+│   │   │       │   ├── customer_dto.py
+│   │   │       │   ├── device_dto.py
+│   │   │       │   └── ticket_dto.py
+│   │   │       ├── interfaces
+│   │   │       │   ├── iaudit_service.py
+│   │   │       │   ├── iauth_service.py
+│   │   │       │   ├── ibranch_service.py
+│   │   │       │   ├── ibusiness_settings_service.py
+│   │   │       │   ├── icategory_service.py
+│   │   │       │   ├── icustomer_service.py
+│   │   │       │   ├── idevice_service.py
+│   │   │       │   ├── iinvoice_item_service.py
+│   │   │       │   ├── iinvoice_service.py
+│   │   │       │   ├── ipart_service.py
+│   │   │       │   ├── ipayment_service.py
+│   │   │       │   ├── ipurchase_order_service.py
+│   │   │       │   ├── irepair_part_service.py
+│   │   │       │   ├── irole_service.py
+│   │   │       │   ├── isupplier_service.py
+│   │   │       │   ├── itechnician_service.py
+│   │   │       │   ├── iticket_service.py
+│   │   │       │   ├── iwarranty_service.py
+│   │   │       │   └── iwork_log_service.py
+│   │   │       ├── main.py
+│   │   │       ├── migrations
+│   │   │       │   └── add_technician_bonus_performance.py
+│   │   │       ├── models
+│   │   │       │   ├── audit_log.py
+│   │   │       │   ├── base_model.py
+│   │   │       │   ├── branch.py
+│   │   │       │   ├── business_settings.py
+│   │   │       │   ├── category.py
+│   │   │       │   ├── credit_note.py
+│   │   │       │   ├── customer.py
+│   │   │       │   ├── device.py
+│   │   │       │   ├── inventory_log.py
+│   │   │       │   ├── invoice_item.py
+│   │   │       │   ├── invoice.py
+│   │   │       │   ├── part.py
+│   │   │       │   ├── payment.py
+│   │   │       │   ├── permission.py
+│   │   │       │   ├── price_history.py
+│   │   │       │   ├── purchase_order_item.py
+│   │   │       │   ├── purchase_order.py
+│   │   │       │   ├── purchase_return_item.py
+│   │   │       │   ├── purchase_return.py
+│   │   │       │   ├── repair_part.py
+│   │   │       │   ├── role_permission.py
+│   │   │       │   ├── role.py
+│   │   │       │   ├── status_history.py
+│   │   │       │   ├── supplier_invoice.py
+│   │   │       │   ├── supplier_payment.py
+│   │   │       │   ├── supplier.py
+│   │   │       │   ├── technician_bonus.py
+│   │   │       │   ├── technician_performance.py
+│   │   │       │   ├── technician.py
+│   │   │       │   ├── ticket.py
+│   │   │       │   ├── user.py
+│   │   │       │   ├── warranty.py
+│   │   │       │   └── work_log.py
+│   │   │       ├── repositories
+│   │   │       │   ├── branch_repository.py
+│   │   │       │   ├── business_settings_repository.py
+│   │   │       │   ├── category_repository.py
+│   │   │       │   ├── credit_note_repository.py
+│   │   │       │   ├── customer_repository.py
+│   │   │       │   ├── device_repository.py
+│   │   │       │   ├── inventory_log_repository.py
+│   │   │       │   ├── invoice_item_repository.py
+│   │   │       │   ├── invoice_repository.py
+│   │   │       │   ├── job_repository.py
+│   │   │       │   ├── part_repository.py
+│   │   │       │   ├── payment_repository.py
+│   │   │       │   ├── price_history_repository.py
+│   │   │       │   ├── purchase_order_item_repository.py
+│   │   │       │   ├── purchase_order_repository.py
+│   │   │       │   ├── purchase_return_item_repository.py
+│   │   │       │   ├── purchase_return_repository.py
+│   │   │       │   ├── repair_part_repository.py
+│   │   │       │   ├── role_repository.py
+│   │   │       │   ├── status_history_repository.py
+│   │   │       │   ├── supplier_invoice_repository.py
+│   │   │       │   ├── supplier_payment_repository.py
+│   │   │       │   ├── supplier_repository.py
+│   │   │       │   ├── technician_repository.py
+│   │   │       │   ├── ticket_repository.py
+│   │   │       │   ├── user_repository.py
+│   │   │       │   ├── warranty_repository.py
+│   │   │       │   └── work_log_repository.py
+│   │   │       ├── services
+│   │   │       │   ├── audit_service.py
+│   │   │       │   ├── auth_service.py
+│   │   │       │   ├── branch_service.py
+│   │   │       │   ├── business_settings_service.py
+│   │   │       │   ├── category_service.py
+│   │   │       │   ├── credit_note_service.py
+│   │   │       │   ├── customer_service.py
+│   │   │       │   ├── device_service.py
+│   │   │       │   ├── invoice_item_service.py
+│   │   │       │   ├── invoice_service.py
+│   │   │       │   ├── part_service.py
+│   │   │       │   ├── payment_service.py
+│   │   │       │   ├── purchase_order_service.py
+│   │   │       │   ├── purchase_return_service.py
+│   │   │       │   ├── repair_part_service.py
+│   │   │       │   ├── report_service.py
+│   │   │       │   ├── role_service.py
+│   │   │       │   ├── settings_service.py
+│   │   │       │   ├── supplier_invoice_service.py
+│   │   │       │   ├── supplier_payment_service.py
+│   │   │       │   ├── supplier_service.py
+│   │   │       │   ├── technician_service.py
+│   │   │       │   ├── ticket_service.py
+│   │   │       │   ├── warranty_service.py
+│   │   │       │   └── work_log_service.py
+│   │   │       ├── static
+│   │   │       │   ├── barcodes
+│   │   │       │   ├── css
+│   │   │       │   ├── icons
+│   │   │       │   │   ├── add-ticket.png
+│   │   │       │   │   ├── checkmark-white.png
+│   │   │       │   │   ├── checkmark.png
+│   │   │       │   │   ├── customers.png
+│   │   │       │   │   ├── dashboard.png
+│   │   │       │   │   ├── device.png
+│   │   │       │   │   ├── edit.png
+│   │   │       │   │   ├── eye.png
+│   │   │       │   │   ├── info.png
+│   │   │       │   │   ├── inventory.png
+│   │   │       │   │   ├── jobs.png
+│   │   │       │   │   ├── logout.png
+│   │   │       │   │   ├── plus.png
+│   │   │       │   │   ├── reports.png
+│   │   │       │   │   ├── settings.png
+│   │   │       │   │   ├── technician.png
+│   │   │       │   │   ├── ticket.png
+│   │   │       │   │   ├── trash.png
+│   │   │       │   │   └── user-add.png
+│   │   │       │   ├── images
+│   │   │       │   └── theme
+│   │   │       │       ├── static
+│   │   │       │       │   └── icons
+│   │   │       │       │       └── checkmark-white.png
+│   │   │       │       ├── theme-dark.css
+│   │   │       │       └── theme-light.css
+│   │   │       ├── utils
+│   │   │       │   ├── performance_charts.py
+│   │   │       │   ├── performance_export.py
+│   │   │       │   ├── print
+│   │   │       │   │   ├── invoice_generator.py
+│   │   │       │   │   ├── purchase_order_generator.py
+│   │   │       │   │   └── ticket_generator.py
+│   │   │       │   ├── security
+│   │   │       │   │   └── password_utils.py
+│   │   │       │   ├── tools
+│   │   │       │   │   ├── convert_brand_model.py
+│   │   │       │   │   └── gsmarea_scraperv2.py
+│   │   │       │   └── validation
+│   │   │       │       ├── input_validator.py
+│   │   │       │       ├── message_handler.py
+│   │   │       │       └── phone_formatter.py
+│   │   │       └── views
+│   │   │           ├── admin
+│   │   │           │   └── dashboard.py
+│   │   │           ├── auth
+│   │   │           │   ├── login.py
+│   │   │           │   └── register.py
+│   │   │           ├── components
+│   │   │           │   ├── base_details_dialog.py
+│   │   │           │   ├── customer_input.py
+│   │   │           │   ├── dashboard_charts.py
+│   │   │           │   ├── device_info_widget.py
+│   │   │           │   ├── device_input.py
+│   │   │           │   └── metric_card.py
+│   │   │           ├── customer
+│   │   │           │   ├── customer_details_dialog.py
+│   │   │           │   ├── customer_form.py
+│   │   │           │   ├── customers.py
+│   │   │           │   └── modern_customers_tab.py
+│   │   │           ├── dashboard.py
+│   │   │           ├── device
+│   │   │           │   ├── device_details_dialog.py
+│   │   │           │   ├── device_form.py
+│   │   │           │   ├── devices.py
+│   │   │           │   └── modern_devices_tab.py
+│   │   │           ├── inventory
+│   │   │           │   ├── category_list_tab.py
+│   │   │           │   ├── create_invoice_dialog.py
+│   │   │           │   ├── financial
+│   │   │           │   │   ├── apply_credit_dialog.py
+│   │   │           │   │   ├── credit_note_details_dialog.py
+│   │   │           │   │   ├── credit_note_list_tab.py
+│   │   │           │   │   ├── invoice_edit_dialog.py
+│   │   │           │   │   ├── invoice_list_tab.py
+│   │   │           │   │   ├── payment_list_tab.py
+│   │   │           │   │   ├── purchase_order_list_tab.py
+│   │   │           │   │   └── purchase_return_list_tab.py
+│   │   │           │   ├── inventory.py
+│   │   │           │   ├── modern_category_list_tab.py
+│   │   │           │   ├── modern_inventory.py
+│   │   │           │   ├── modern_parts_list_tab.py
+│   │   │           │   ├── modern_supplier_list_tab.py
+│   │   │           │   ├── part_details_dialog.py
+│   │   │           │   ├── part_dialog.py
+│   │   │           │   ├── parts_list_tab.py
+│   │   │           │   ├── purchase_order_dialog.py
+│   │   │           │   ├── purchase_order_list_dialog.py
+│   │   │           │   ├── purchase_return_details_dialog.py
+│   │   │           │   ├── purchase_return_dialog.py
+│   │   │           │   ├── record_payment_dialog.py
+│   │   │           │   ├── restock_dialog.py
+│   │   │           │   ├── supplier_details_dialog.py
+│   │   │           │   ├── supplier_dialog.py
+│   │   │           │   └── supplier_list_tab.py
+│   │   │           ├── invoice
+│   │   │           │   ├── create_customer_invoice_dialog.py
+│   │   │           │   ├── customer_invoice_details_dialog.py
+│   │   │           │   ├── modern_invoice_tab copy.py
+│   │   │           │   ├── modern_invoice_tab.py
+│   │   │           │   └── record_customer_payment_dialog.py
+│   │   │           ├── job
+│   │   │           │   └── jobs.py
+│   │   │           ├── main_window copy.py
+│   │   │           ├── main_window.py
+│   │   │           ├── modern_dashboard.py
+│   │   │           ├── report
+│   │   │           │   ├── modern_reports.py
+│   │   │           │   └── reports.py
+│   │   │           ├── setting
+│   │   │           │   ├── settings.py
+│   │   │           │   └── tabs
+│   │   │           │       ├── business.py
+│   │   │           │       ├── categories.py
+│   │   │           │       ├── gerenal.py
+│   │   │           │       └── users.py
+│   │   │           ├── technician
+│   │   │           │   ├── bonus_management_dialog.py
+│   │   │           │   ├── performance_dashboard_dialog.py
+│   │   │           │   ├── technician_details_dialog.py
+│   │   │           │   └── technicians.py
+│   │   │           └── tickets
+│   │   │               ├── add_part_dialog.py
+│   │   │               ├── modern_ticket_receipt.py
+│   │   │               ├── modern_tickets_styles.css
+│   │   │               ├── modern_tickets_tab.py
+│   │   │               ├── ticket_details_dialog.py
+│   │   │               ├── ticket_receipt_actions.py
+│   │   │               ├── ticket_receipt_controls.py
+│   │   │               ├── ticket_receipt_customer.py
+│   │   │               ├── ticket_receipt_device.py
+│   │   │               ├── ticket_receipt_issue.py
+│   │   │               ├── ticket_receipt.py
+│   │   │               └── tickets.py
+│   │   ├── technician_dropdown_FINAL_FIX.md
+│   │   ├── technician_dropdown_fix.md
+│   │   ├── technician_dropdown_testing.md
+│   │   ├── test_invoice.pdf
+│   │   ├── tests
+│   │   │   ├── cust_edit.py
+│   │   │   ├── ip_cam_hack.py
+│   │   │   ├── msa.db-shm
+│   │   │   ├── msa.db-wal
+│   │   │   ├── settings_window.py
+│   │   │   ├── test_status_history.py
+│   │   │   ├── test_technician_bonus.py
+│   │   │   ├── test_technician_performance.py
+│   │   │   ├── verify_app_health.py
+│   │   │   ├── verify_create_part.py
+│   │   │   ├── verify_po_price_update.py
+│   │   │   ├── verify_po_workflow.py
+│   │   │   ├── verify_price_history.py
+│   │   │   └── verify_supplier_creation.py
+│   │   ├── verify_apply_credit_logic.py
+│   │   ├── verify_di.py
+│   │   ├── verify_financial_tab_import.py
+│   │   ├── verify_imports.py
+│   │   ├── verify_invoices.py
+│   │   ├── verify_legacy_mapping.py
+│   │   └── verify_ui.py
+│   ├── backup_20251130_180813.zip
+│   ├── backup_20251202_213227
+│   │   ├── analytics_redesign_summary.md
+│   │   ├── dashboard_test_results.md
+│   │   ├── database
+│   │   ├── docs
+│   │   │   ├── ASCII_OUTPUT
+│   │   │   │   ├── device_detail.txt
+│   │   │   │   ├── device_repair_parts_used.txt
+│   │   │   │   ├── new_repair_ticket.txt
+│   │   │   │   ├── repair_ticket_label.txt
+│   │   │   │   └── ticket_opening_form.txt
+│   │   │   ├── mermaid_diagram
+│   │   │   │   ├── 00_MASTER_CLASS_DIAGRAM.mmd
+│   │   │   │   ├── 00_MASTER_DIAGRAM.mmd
+│   │   │   │   ├── 01_AUDIT_LOG.mmd
+│   │   │   │   ├── 02_BASE_MODEL.mmd
+│   │   │   │   ├── 03_CUSTOMER.mmd
+│   │   │   │   ├── 04_DEVICE.mmd
+│   │   │   │   ├── 05_PART.mmd
+│   │   │   │   ├── 06_PERMISSION.mmd
+│   │   │   │   ├── 07_REPAIR_PART.mmd
+│   │   │   │   ├── 08_ROLE.mmd
+│   │   │   │   ├── 09_TICKET.mmd
+│   │   │   │   ├── 10_USER.mmd
+│   │   │   │   ├── 11_NEW_TABLE.mmd
+│   │   │   │   ├── database_schma.mmd
+│   │   │   │   └── database_schma.png
+│   │   │   └── notes
+│   │   │       ├── data_flow copy.mmd
+│   │   │       ├── data_flow.mmd
+│   │   │       ├── flow_idea.txt
+│   │   │       ├── repair_shop_management.png
+│   │   │       └── settings_ui.txt
+│   │   ├── migrations
+│   │   │   ├── add_invoice_discount_shipping.py
+│   │   │   └── add_purchase_returns.py
+│   │   ├── src
+│   │   │   └── app
+│   │   │       ├── api
+│   │   │       ├── config
+│   │   │       │   ├── brand_model_compact.ini
+│   │   │       │   ├── brand_model.ini
+│   │   │       │   ├── config_loader.py
+│   │   │       │   ├── config_manager.py
+│   │   │       │   ├── config.py
+│   │   │       │   ├── constants.py
+│   │   │       │   ├── database.py
+│   │   │       │   ├── languages
+│   │   │       │   │   ├── burmese copy.ini
+│   │   │       │   │   ├── burmese.ini
+│   │   │       │   │   ├── en.ini
+│   │   │       │   │   ├── th.ini
+│   │   │       │   │   ├── vi.ini
+│   │   │       │   │   └── zh-cn.ini
+│   │   │       │   └── phone_error.ini
+│   │   │       ├── controllers
+│   │   │       │   ├── auth_controller.py
+│   │   │       │   ├── branch_controller.py
+│   │   │       │   ├── business_settings_controller.py
+│   │   │       │   ├── category_controller.py
+│   │   │       │   ├── customer_controller.py
+│   │   │       │   ├── device_controller.py
+│   │   │       │   ├── inventory_controller.py
+│   │   │       │   ├── invoice_controller.py
+│   │   │       │   ├── invoice_item_controller.py
+│   │   │       │   ├── job_controller.py
+│   │   │       │   ├── part_controller.py
+│   │   │       │   ├── payment_controller.py
+│   │   │       │   ├── purchase_order_controller.py
+│   │   │       │   ├── purchase_return_controller.py
+│   │   │       │   ├── repair_part_controller.py
+│   │   │       │   ├── report_controller.py
+│   │   │       │   ├── setting_controller.py
+│   │   │       │   ├── supplier_controller.py
+│   │   │       │   ├── technician_bonus_controller.py
+│   │   │       │   ├── technician_controller.py
+│   │   │       │   ├── technician_performance_controller.py
+│   │   │       │   ├── theme_controller.py
+│   │   │       │   ├── ticket_controller.py
+│   │   │       │   ├── warranty_controller.py
+│   │   │       │   └── work_log_controller.py
+│   │   │       ├── core
+│   │   │       │   ├── app.py
+│   │   │       │   ├── business_services.py
+│   │   │       │   ├── controllers.py
+│   │   │       │   ├── core_services.py
+│   │   │       │   ├── dependency_container.py
+│   │   │       │   └── repositories.py
+│   │   │       ├── database
+│   │   │       │   ├── msa.db-shm
+│   │   │       │   └── msa.db-wal
+│   │   │       ├── dtos
+│   │   │       │   ├── customer_dto.py
+│   │   │       │   ├── device_dto.py
+│   │   │       │   └── ticket_dto.py
+│   │   │       ├── interfaces
+│   │   │       │   ├── iaudit_service.py
+│   │   │       │   ├── iauth_service.py
+│   │   │       │   ├── ibranch_service.py
+│   │   │       │   ├── ibusiness_settings_service.py
+│   │   │       │   ├── icategory_service.py
+│   │   │       │   ├── icustomer_service.py
+│   │   │       │   ├── idevice_service.py
+│   │   │       │   ├── iinvoice_item_service.py
+│   │   │       │   ├── iinvoice_service.py
+│   │   │       │   ├── ipart_service.py
+│   │   │       │   ├── ipayment_service.py
+│   │   │       │   ├── ipurchase_order_service.py
+│   │   │       │   ├── irepair_part_service.py
+│   │   │       │   ├── irole_service.py
+│   │   │       │   ├── isupplier_service.py
+│   │   │       │   ├── itechnician_service.py
+│   │   │       │   ├── iticket_service.py
+│   │   │       │   ├── iwarranty_service.py
+│   │   │       │   └── iwork_log_service.py
+│   │   │       ├── main.py
+│   │   │       ├── migrations
+│   │   │       │   └── add_technician_bonus_performance.py
+│   │   │       ├── models
+│   │   │       │   ├── audit_log.py
+│   │   │       │   ├── base_model.py
+│   │   │       │   ├── branch.py
+│   │   │       │   ├── business_settings.py
+│   │   │       │   ├── category.py
+│   │   │       │   ├── credit_note.py
+│   │   │       │   ├── customer.py
+│   │   │       │   ├── device.py
+│   │   │       │   ├── inventory_log.py
+│   │   │       │   ├── invoice_item.py
+│   │   │       │   ├── invoice.py
+│   │   │       │   ├── part.py
+│   │   │       │   ├── payment.py
+│   │   │       │   ├── permission.py
+│   │   │       │   ├── price_history.py
+│   │   │       │   ├── purchase_order_item.py
+│   │   │       │   ├── purchase_order.py
+│   │   │       │   ├── purchase_return_item.py
+│   │   │       │   ├── purchase_return.py
+│   │   │       │   ├── repair_part.py
+│   │   │       │   ├── role_permission.py
+│   │   │       │   ├── role.py
+│   │   │       │   ├── status_history.py
+│   │   │       │   ├── supplier_invoice.py
+│   │   │       │   ├── supplier_payment.py
+│   │   │       │   ├── supplier.py
+│   │   │       │   ├── technician_bonus.py
+│   │   │       │   ├── technician_performance.py
+│   │   │       │   ├── technician.py
+│   │   │       │   ├── ticket.py
+│   │   │       │   ├── user.py
+│   │   │       │   ├── warranty.py
+│   │   │       │   └── work_log.py
+│   │   │       ├── repositories
+│   │   │       │   ├── branch_repository.py
+│   │   │       │   ├── business_settings_repository.py
+│   │   │       │   ├── category_repository.py
+│   │   │       │   ├── credit_note_repository.py
+│   │   │       │   ├── customer_repository.py
+│   │   │       │   ├── device_repository.py
+│   │   │       │   ├── inventory_log_repository.py
+│   │   │       │   ├── invoice_item_repository.py
+│   │   │       │   ├── invoice_repository.py
+│   │   │       │   ├── job_repository.py
+│   │   │       │   ├── part_repository.py
+│   │   │       │   ├── payment_repository.py
+│   │   │       │   ├── price_history_repository.py
+│   │   │       │   ├── purchase_order_item_repository.py
+│   │   │       │   ├── purchase_order_repository.py
+│   │   │       │   ├── purchase_return_item_repository.py
+│   │   │       │   ├── purchase_return_repository.py
+│   │   │       │   ├── repair_part_repository.py
+│   │   │       │   ├── role_repository.py
+│   │   │       │   ├── status_history_repository.py
+│   │   │       │   ├── supplier_invoice_repository.py
+│   │   │       │   ├── supplier_payment_repository.py
+│   │   │       │   ├── supplier_repository.py
+│   │   │       │   ├── technician_repository.py
+│   │   │       │   ├── ticket_repository.py
+│   │   │       │   ├── user_repository.py
+│   │   │       │   ├── warranty_repository.py
+│   │   │       │   └── work_log_repository.py
+│   │   │       ├── services
+│   │   │       │   ├── audit_service.py
+│   │   │       │   ├── auth_service.py
+│   │   │       │   ├── branch_service.py
+│   │   │       │   ├── business_settings_service.py
+│   │   │       │   ├── category_service.py
+│   │   │       │   ├── credit_note_service.py
+│   │   │       │   ├── customer_service.py
+│   │   │       │   ├── device_service.py
+│   │   │       │   ├── invoice_item_service.py
+│   │   │       │   ├── invoice_service.py
+│   │   │       │   ├── part_service.py
+│   │   │       │   ├── payment_service.py
+│   │   │       │   ├── purchase_order_service.py
+│   │   │       │   ├── purchase_return_service.py
+│   │   │       │   ├── repair_part_service.py
+│   │   │       │   ├── report_service.py
+│   │   │       │   ├── role_service.py
+│   │   │       │   ├── settings_service.py
+│   │   │       │   ├── supplier_invoice_service.py
+│   │   │       │   ├── supplier_payment_service.py
+│   │   │       │   ├── supplier_service.py
+│   │   │       │   ├── technician_service.py
+│   │   │       │   ├── ticket_service.py
+│   │   │       │   ├── warranty_service.py
+│   │   │       │   └── work_log_service.py
+│   │   │       ├── static
+│   │   │       │   ├── barcodes
+│   │   │       │   ├── css
+│   │   │       │   ├── icons
+│   │   │       │   │   ├── add-ticket.png
+│   │   │       │   │   ├── checkmark-white.png
+│   │   │       │   │   ├── checkmark.png
+│   │   │       │   │   ├── customers.png
+│   │   │       │   │   ├── dashboard.png
+│   │   │       │   │   ├── device.png
+│   │   │       │   │   ├── edit.png
+│   │   │       │   │   ├── eye.png
+│   │   │       │   │   ├── info.png
+│   │   │       │   │   ├── inventory.png
+│   │   │       │   │   ├── jobs.png
+│   │   │       │   │   ├── logout.png
+│   │   │       │   │   ├── plus.png
+│   │   │       │   │   ├── reports.png
+│   │   │       │   │   ├── settings.png
+│   │   │       │   │   ├── technician.png
+│   │   │       │   │   ├── ticket.png
+│   │   │       │   │   ├── trash.png
+│   │   │       │   │   └── user-add.png
+│   │   │       │   ├── images
+│   │   │       │   └── theme
+│   │   │       │       ├── static
+│   │   │       │       │   └── icons
+│   │   │       │       │       └── checkmark-white.png
+│   │   │       │       ├── theme-dark.css
+│   │   │       │       └── theme-light.css
+│   │   │       ├── utils
+│   │   │       │   ├── currency_formatter.py
+│   │   │       │   ├── language_manager.py
+│   │   │       │   ├── performance_charts.py
+│   │   │       │   ├── performance_export.py
+│   │   │       │   ├── print
+│   │   │       │   │   ├── invoice_generator.py
+│   │   │       │   │   ├── purchase_order_generator.py
+│   │   │       │   │   ├── ticket_generator_working.py
+│   │   │       │   │   └── ticket_generator.py
+│   │   │       │   ├── security
+│   │   │       │   │   └── password_utils.py
+│   │   │       │   ├── tools
+│   │   │       │   │   ├── convert_brand_model.py
+│   │   │       │   │   └── gsmarea_scraperv2.py
+│   │   │       │   └── validation
+│   │   │       │       ├── input_validator.py
+│   │   │       │       ├── message_handler.py
+│   │   │       │       └── phone_formatter.py
+│   │   │       └── views
+│   │   │           ├── admin
+│   │   │           │   └── dashboard.py
+│   │   │           ├── auth
+│   │   │           │   ├── login.py
+│   │   │           │   └── register.py
+│   │   │           ├── components
+│   │   │           │   ├── base_details_dialog.py
+│   │   │           │   ├── customer_input.py
+│   │   │           │   ├── dashboard_charts.py
+│   │   │           │   ├── device_info_widget.py
+│   │   │           │   ├── device_input.py
+│   │   │           │   └── metric_card.py
+│   │   │           ├── customer
+│   │   │           │   ├── customer_details_dialog.py
+│   │   │           │   ├── customer_form.py
+│   │   │           │   ├── customers.py
+│   │   │           │   └── modern_customers_tab.py
+│   │   │           ├── dashboard.py
+│   │   │           ├── device
+│   │   │           │   ├── device_details_dialog.py
+│   │   │           │   ├── device_form.py
+│   │   │           │   ├── devices.py
+│   │   │           │   └── modern_devices_tab.py
+│   │   │           ├── inventory
+│   │   │           │   ├── category_list_tab.py
+│   │   │           │   ├── create_invoice_dialog.py
+│   │   │           │   ├── financial
+│   │   │           │   │   ├── apply_credit_dialog.py
+│   │   │           │   │   ├── credit_note_details_dialog.py
+│   │   │           │   │   ├── credit_note_list_tab.py
+│   │   │           │   │   ├── invoice_edit_dialog.py
+│   │   │           │   │   ├── invoice_list_tab.py
+│   │   │           │   │   ├── payment_list_tab.py
+│   │   │           │   │   ├── purchase_order_list_tab.py
+│   │   │           │   │   └── purchase_return_list_tab.py
+│   │   │           │   ├── inventory.py
+│   │   │           │   ├── modern_category_list_tab.py
+│   │   │           │   ├── modern_inventory.py
+│   │   │           │   ├── modern_parts_list_tab.py
+│   │   │           │   ├── modern_supplier_list_tab.py
+│   │   │           │   ├── part_details_dialog.py
+│   │   │           │   ├── part_dialog.py
+│   │   │           │   ├── parts_list_tab.py
+│   │   │           │   ├── purchase_order_dialog.py
+│   │   │           │   ├── purchase_order_list_dialog.py
+│   │   │           │   ├── purchase_return_details_dialog.py
+│   │   │           │   ├── purchase_return_dialog.py
+│   │   │           │   ├── record_payment_dialog.py
+│   │   │           │   ├── restock_dialog.py
+│   │   │           │   ├── supplier_details_dialog.py
+│   │   │           │   ├── supplier_dialog.py
+│   │   │           │   └── supplier_list_tab.py
+│   │   │           ├── invoice
+│   │   │           │   ├── create_customer_invoice_dialog.py
+│   │   │           │   ├── customer_invoice_details_dialog.py
+│   │   │           │   ├── modern_invoice_tab copy.py
+│   │   │           │   ├── modern_invoice_tab.py
+│   │   │           │   └── record_customer_payment_dialog.py
+│   │   │           ├── job
+│   │   │           │   └── jobs.py
+│   │   │           ├── main_window.py
+│   │   │           ├── modern_dashboard.py
+│   │   │           ├── report
+│   │   │           │   ├── modern_reports.py
+│   │   │           │   └── reports.py
+│   │   │           ├── setting
+│   │   │           │   ├── settings.py
+│   │   │           │   └── tabs
+│   │   │           │       ├── business.py
+│   │   │           │       ├── categories.py
+│   │   │           │       ├── general.py
+│   │   │           │       └── users.py
+│   │   │           ├── technician
+│   │   │           │   ├── bonus_management_dialog.py
+│   │   │           │   ├── performance_dashboard_dialog.py
+│   │   │           │   ├── technician_details_dialog.py
+│   │   │           │   └── technicians.py
+│   │   │           └── tickets
+│   │   │               ├── add_part_dialog.py
+│   │   │               ├── kanban_view.py
+│   │   │               ├── modern_tickets_tab.py
+│   │   │               ├── ticket_base.py
+│   │   │               ├── ticket_details_dialog.py
+│   │   │               ├── ticket_receipt_actions.py
+│   │   │               ├── ticket_receipt_controls.py
+│   │   │               ├── ticket_receipt_customer.py
+│   │   │               ├── ticket_receipt_device.py
+│   │   │               ├── ticket_receipt_issue.py
+│   │   │               ├── ticket_receipt.py
+│   │   │               └── tickets.py
+│   │   ├── technician_dropdown_FINAL_FIX.md
+│   │   ├── technician_dropdown_fix.md
+│   │   ├── technician_dropdown_testing.md
+│   │   ├── test_data
+│   │   │   └── settings
+│   │   │       └── user_999.json
+│   │   └── tests
+│   │       ├── fix_completed_tickets.py
+│   │       ├── fix_invoice_index.py
+│   │       ├── settings_window.py
+│   │       ├── test_currency_formatter.py
+│   │       ├── test_ini_load.py
+│   │       ├── test_language_manager.py
+│   │       ├── test_multilang_complete.py
+│   │       ├── test_status_history.py
+│   │       ├── test_technician_bonus.py
+│   │       ├── test_technician_performance.py
+│   │       ├── verify_app_health.py
+│   │       ├── verify_apply_credit_logic.py
+│   │       ├── verify_create_part.py
+│   │       ├── verify_customers_multilang.py
+│   │       ├── verify_di.py
+│   │       ├── verify_financial_tab_import.py
+│   │       ├── verify_imports.py
+│   │       ├── verify_inventory_multilang.py
+│   │       ├── verify_invoice_multilang.py
+│   │       ├── verify_invoices.py
+│   │       ├── verify_legacy_mapping.py
+│   │       ├── verify_multilang.py
+│   │       ├── verify_output_2.txt
+│   │       ├── verify_output.txt
+│   │       ├── verify_po_price_update.py
+│   │       ├── verify_po_workflow.py
+│   │       ├── verify_price_history.py
+│   │       ├── verify_settings.py
+│   │       ├── verify_supplier_creation.py
+│   │       ├── verify_ui.py
+│   │       └── verify_users_multilang.py
+│   ├── backup_20251202_213227.zip
+│   ├── backup_20251203_044512
+│   │   ├── analytics_redesign_summary.md
+│   │   ├── dashboard_test_results.md
+│   │   ├── database
+│   │   ├── docs
+│   │   │   ├── ASCII_OUTPUT
+│   │   │   │   ├── device_detail.txt
+│   │   │   │   ├── device_repair_parts_used.txt
+│   │   │   │   ├── new_repair_ticket.txt
+│   │   │   │   ├── repair_ticket_label.txt
+│   │   │   │   └── ticket_opening_form.txt
+│   │   │   ├── mermaid_diagram
+│   │   │   │   ├── 00_MASTER_CLASS_DIAGRAM.mmd
+│   │   │   │   ├── 00_MASTER_DIAGRAM.mmd
+│   │   │   │   ├── 01_AUDIT_LOG.mmd
+│   │   │   │   ├── 02_BASE_MODEL.mmd
+│   │   │   │   ├── 03_CUSTOMER.mmd
+│   │   │   │   ├── 04_DEVICE.mmd
+│   │   │   │   ├── 05_PART.mmd
+│   │   │   │   ├── 06_PERMISSION.mmd
+│   │   │   │   ├── 07_REPAIR_PART.mmd
+│   │   │   │   ├── 08_ROLE.mmd
+│   │   │   │   ├── 09_TICKET.mmd
+│   │   │   │   ├── 10_USER.mmd
+│   │   │   │   ├── 11_NEW_TABLE.mmd
+│   │   │   │   ├── database_schma.mmd
+│   │   │   │   └── database_schma.png
+│   │   │   └── notes
+│   │   │       ├── data_flow copy.mmd
+│   │   │       ├── data_flow.mmd
+│   │   │       ├── flow_idea.txt
+│   │   │       ├── repair_shop_management.png
+│   │   │       └── settings_ui.txt
+│   │   ├── migrations
+│   │   │   ├── add_invoice_discount_shipping.py
+│   │   │   └── add_purchase_returns.py
+│   │   ├── src
+│   │   │   └── app
+│   │   │       ├── api
+│   │   │       ├── config
+│   │   │       │   ├── brand_model_compact.ini
+│   │   │       │   ├── brand_model.ini
+│   │   │       │   ├── config_loader.py
+│   │   │       │   ├── config_manager.py
+│   │   │       │   ├── config.py
+│   │   │       │   ├── constants.py
+│   │   │       │   ├── database.py
+│   │   │       │   ├── languages
+│   │   │       │   │   ├── burmese copy.ini
+│   │   │       │   │   ├── burmese.ini
+│   │   │       │   │   ├── en.ini
+│   │   │       │   │   ├── th.ini
+│   │   │       │   │   ├── vi.ini
+│   │   │       │   │   └── zh-cn.ini
+│   │   │       │   └── phone_error.ini
+│   │   │       ├── controllers
+│   │   │       │   ├── auth_controller.py
+│   │   │       │   ├── branch_controller.py
+│   │   │       │   ├── business_settings_controller.py
+│   │   │       │   ├── category_controller.py
+│   │   │       │   ├── customer_controller.py
+│   │   │       │   ├── device_controller.py
+│   │   │       │   ├── inventory_controller.py
+│   │   │       │   ├── invoice_controller.py
+│   │   │       │   ├── invoice_item_controller.py
+│   │   │       │   ├── job_controller.py
+│   │   │       │   ├── part_controller.py
+│   │   │       │   ├── payment_controller.py
+│   │   │       │   ├── purchase_order_controller.py
+│   │   │       │   ├── purchase_return_controller.py
+│   │   │       │   ├── repair_part_controller.py
+│   │   │       │   ├── report_controller.py
+│   │   │       │   ├── setting_controller.py
+│   │   │       │   ├── supplier_controller.py
+│   │   │       │   ├── technician_bonus_controller.py
+│   │   │       │   ├── technician_controller.py
+│   │   │       │   ├── technician_performance_controller.py
+│   │   │       │   ├── theme_controller.py
+│   │   │       │   ├── ticket_controller.py
+│   │   │       │   ├── warranty_controller.py
+│   │   │       │   └── work_log_controller.py
+│   │   │       ├── core
+│   │   │       │   ├── app.py
+│   │   │       │   ├── business_services.py
+│   │   │       │   ├── controllers.py
+│   │   │       │   ├── core_services.py
+│   │   │       │   ├── dependency_container.py
+│   │   │       │   └── repositories.py
+│   │   │       ├── database
+│   │   │       │   ├── msa.db-shm
+│   │   │       │   └── msa.db-wal
+│   │   │       ├── dtos
+│   │   │       │   ├── customer_dto.py
+│   │   │       │   ├── device_dto.py
+│   │   │       │   └── ticket_dto.py
+│   │   │       ├── interfaces
+│   │   │       │   ├── iaudit_service.py
+│   │   │       │   ├── iauth_service.py
+│   │   │       │   ├── ibranch_service.py
+│   │   │       │   ├── ibusiness_settings_service.py
+│   │   │       │   ├── icategory_service.py
+│   │   │       │   ├── icustomer_service.py
+│   │   │       │   ├── idevice_service.py
+│   │   │       │   ├── iinvoice_item_service.py
+│   │   │       │   ├── iinvoice_service.py
+│   │   │       │   ├── ipart_service.py
+│   │   │       │   ├── ipayment_service.py
+│   │   │       │   ├── ipurchase_order_service.py
+│   │   │       │   ├── irepair_part_service.py
+│   │   │       │   ├── irole_service.py
+│   │   │       │   ├── isupplier_service.py
+│   │   │       │   ├── itechnician_service.py
+│   │   │       │   ├── iticket_service.py
+│   │   │       │   ├── iwarranty_service.py
+│   │   │       │   └── iwork_log_service.py
+│   │   │       ├── main.py
+│   │   │       ├── migrations
+│   │   │       │   └── add_technician_bonus_performance.py
+│   │   │       ├── models
+│   │   │       │   ├── audit_log.py
+│   │   │       │   ├── base_model.py
+│   │   │       │   ├── branch.py
+│   │   │       │   ├── business_settings.py
+│   │   │       │   ├── category.py
+│   │   │       │   ├── credit_note.py
+│   │   │       │   ├── customer.py
+│   │   │       │   ├── device.py
+│   │   │       │   ├── inventory_log.py
+│   │   │       │   ├── invoice_item.py
+│   │   │       │   ├── invoice.py
+│   │   │       │   ├── part.py
+│   │   │       │   ├── payment.py
+│   │   │       │   ├── permission.py
+│   │   │       │   ├── price_history.py
+│   │   │       │   ├── purchase_order_item.py
+│   │   │       │   ├── purchase_order.py
+│   │   │       │   ├── purchase_return_item.py
+│   │   │       │   ├── purchase_return.py
+│   │   │       │   ├── repair_part.py
+│   │   │       │   ├── role_permission.py
+│   │   │       │   ├── role.py
+│   │   │       │   ├── status_history.py
+│   │   │       │   ├── supplier_invoice.py
+│   │   │       │   ├── supplier_payment.py
+│   │   │       │   ├── supplier.py
+│   │   │       │   ├── technician_bonus.py
+│   │   │       │   ├── technician_performance.py
+│   │   │       │   ├── technician.py
+│   │   │       │   ├── ticket.py
+│   │   │       │   ├── user.py
+│   │   │       │   ├── warranty.py
+│   │   │       │   └── work_log.py
+│   │   │       ├── repositories
+│   │   │       │   ├── branch_repository.py
+│   │   │       │   ├── business_settings_repository.py
+│   │   │       │   ├── category_repository.py
+│   │   │       │   ├── credit_note_repository.py
+│   │   │       │   ├── customer_repository.py
+│   │   │       │   ├── device_repository.py
+│   │   │       │   ├── inventory_log_repository.py
+│   │   │       │   ├── invoice_item_repository.py
+│   │   │       │   ├── invoice_repository.py
+│   │   │       │   ├── job_repository.py
+│   │   │       │   ├── part_repository.py
+│   │   │       │   ├── payment_repository.py
+│   │   │       │   ├── price_history_repository.py
+│   │   │       │   ├── purchase_order_item_repository.py
+│   │   │       │   ├── purchase_order_repository.py
+│   │   │       │   ├── purchase_return_item_repository.py
+│   │   │       │   ├── purchase_return_repository.py
+│   │   │       │   ├── repair_part_repository.py
+│   │   │       │   ├── role_repository.py
+│   │   │       │   ├── status_history_repository.py
+│   │   │       │   ├── supplier_invoice_repository.py
+│   │   │       │   ├── supplier_payment_repository.py
+│   │   │       │   ├── supplier_repository.py
+│   │   │       │   ├── technician_repository.py
+│   │   │       │   ├── ticket_repository.py
+│   │   │       │   ├── user_repository.py
+│   │   │       │   ├── warranty_repository.py
+│   │   │       │   └── work_log_repository.py
+│   │   │       ├── services
+│   │   │       │   ├── audit_service.py
+│   │   │       │   ├── auth_service.py
+│   │   │       │   ├── branch_service.py
+│   │   │       │   ├── business_settings_service.py
+│   │   │       │   ├── category_service.py
+│   │   │       │   ├── credit_note_service.py
+│   │   │       │   ├── customer_service.py
+│   │   │       │   ├── device_service.py
+│   │   │       │   ├── invoice_item_service.py
+│   │   │       │   ├── invoice_service.py
+│   │   │       │   ├── part_service.py
+│   │   │       │   ├── payment_service.py
+│   │   │       │   ├── purchase_order_service.py
+│   │   │       │   ├── purchase_return_service.py
+│   │   │       │   ├── repair_part_service.py
+│   │   │       │   ├── report_service.py
+│   │   │       │   ├── role_service.py
+│   │   │       │   ├── settings_service.py
+│   │   │       │   ├── supplier_invoice_service.py
+│   │   │       │   ├── supplier_payment_service.py
+│   │   │       │   ├── supplier_service.py
+│   │   │       │   ├── technician_service.py
+│   │   │       │   ├── ticket_service.py
+│   │   │       │   ├── warranty_service.py
+│   │   │       │   └── work_log_service.py
+│   │   │       ├── static
+│   │   │       │   ├── barcodes
+│   │   │       │   ├── css
+│   │   │       │   ├── icons
+│   │   │       │   │   ├── add-ticket.png
+│   │   │       │   │   ├── checkmark-white.png
+│   │   │       │   │   ├── checkmark.png
+│   │   │       │   │   ├── customers.png
+│   │   │       │   │   ├── dashboard.png
+│   │   │       │   │   ├── device.png
+│   │   │       │   │   ├── edit.png
+│   │   │       │   │   ├── eye.png
+│   │   │       │   │   ├── info.png
+│   │   │       │   │   ├── inventory.png
+│   │   │       │   │   ├── jobs.png
+│   │   │       │   │   ├── logout.png
+│   │   │       │   │   ├── plus.png
+│   │   │       │   │   ├── reports.png
+│   │   │       │   │   ├── settings.png
+│   │   │       │   │   ├── technician.png
+│   │   │       │   │   ├── ticket.png
+│   │   │       │   │   ├── trash.png
+│   │   │       │   │   └── user-add.png
+│   │   │       │   ├── images
+│   │   │       │   └── theme
+│   │   │       │       ├── static
+│   │   │       │       │   └── icons
+│   │   │       │       │       └── checkmark-white.png
+│   │   │       │       ├── theme-dark.css
+│   │   │       │       └── theme-light.css
+│   │   │       ├── utils
+│   │   │       │   ├── currency_formatter.py
+│   │   │       │   ├── language_manager.py
+│   │   │       │   ├── performance_charts.py
+│   │   │       │   ├── performance_export.py
+│   │   │       │   ├── print
+│   │   │       │   │   ├── invoice_generator.py
+│   │   │       │   │   ├── purchase_order_generator.py
+│   │   │       │   │   └── ticket_generator.py
+│   │   │       │   ├── security
+│   │   │       │   │   └── password_utils.py
+│   │   │       │   ├── tools
+│   │   │       │   │   ├── convert_brand_model.py
+│   │   │       │   │   └── gsmarea_scraperv2.py
+│   │   │       │   └── validation
+│   │   │       │       ├── input_validator.py
+│   │   │       │       ├── message_handler.py
+│   │   │       │       └── phone_formatter.py
+│   │   │       └── views
+│   │   │           ├── admin
+│   │   │           │   └── dashboard.py
+│   │   │           ├── auth
+│   │   │           │   ├── login.py
+│   │   │           │   └── register.py
+│   │   │           ├── components
+│   │   │           │   ├── base_details_dialog.py
+│   │   │           │   ├── customer_input.py
+│   │   │           │   ├── dashboard_charts.py
+│   │   │           │   ├── device_info_widget.py
+│   │   │           │   ├── device_input.py
+│   │   │           │   └── metric_card.py
+│   │   │           ├── customer
+│   │   │           │   ├── customer_details_dialog.py
+│   │   │           │   ├── customer_form.py
+│   │   │           │   ├── customers.py
+│   │   │           │   └── modern_customers_tab.py
+│   │   │           ├── dashboard.py
+│   │   │           ├── device
+│   │   │           │   ├── device_details_dialog.py
+│   │   │           │   ├── device_form.py
+│   │   │           │   ├── devices.py
+│   │   │           │   └── modern_devices_tab.py
+│   │   │           ├── inventory
+│   │   │           │   ├── category_list_tab.py
+│   │   │           │   ├── create_invoice_dialog.py
+│   │   │           │   ├── financial
+│   │   │           │   │   ├── apply_credit_dialog.py
+│   │   │           │   │   ├── credit_note_details_dialog.py
+│   │   │           │   │   ├── credit_note_list_tab.py
+│   │   │           │   │   ├── invoice_edit_dialog.py
+│   │   │           │   │   ├── invoice_list_tab.py
+│   │   │           │   │   ├── payment_list_tab.py
+│   │   │           │   │   ├── purchase_order_list_tab.py
+│   │   │           │   │   └── purchase_return_list_tab.py
+│   │   │           │   ├── inventory.py
+│   │   │           │   ├── modern_category_list_tab.py
+│   │   │           │   ├── modern_inventory.py
+│   │   │           │   ├── modern_parts_list_tab.py
+│   │   │           │   ├── modern_supplier_list_tab.py
+│   │   │           │   ├── part_details_dialog.py
+│   │   │           │   ├── part_dialog.py
+│   │   │           │   ├── parts_list_tab.py
+│   │   │           │   ├── purchase_order_dialog.py
+│   │   │           │   ├── purchase_order_list_dialog.py
+│   │   │           │   ├── purchase_return_details_dialog.py
+│   │   │           │   ├── purchase_return_dialog.py
+│   │   │           │   ├── record_payment_dialog.py
+│   │   │           │   ├── restock_dialog.py
+│   │   │           │   ├── supplier_details_dialog.py
+│   │   │           │   ├── supplier_dialog.py
+│   │   │           │   └── supplier_list_tab.py
+│   │   │           ├── invoice
+│   │   │           │   ├── create_customer_invoice_dialog.py
+│   │   │           │   ├── customer_invoice_details_dialog.py
+│   │   │           │   ├── modern_invoice_tab copy.py
+│   │   │           │   ├── modern_invoice_tab.py
+│   │   │           │   └── record_customer_payment_dialog.py
+│   │   │           ├── job
+│   │   │           │   └── jobs.py
+│   │   │           ├── main_window.py
+│   │   │           ├── modern_dashboard.py
+│   │   │           ├── report
+│   │   │           │   ├── modern_reports.py
+│   │   │           │   └── reports.py
+│   │   │           ├── setting
+│   │   │           │   ├── settings.py
+│   │   │           │   └── tabs
+│   │   │           │       ├── business.py
+│   │   │           │       ├── categories.py
+│   │   │           │       ├── general.py
+│   │   │           │       └── users.py
+│   │   │           ├── technician
+│   │   │           │   ├── bonus_management_dialog.py
+│   │   │           │   ├── performance_dashboard_dialog.py
+│   │   │           │   ├── technician_details_dialog.py
+│   │   │           │   └── technicians.py
+│   │   │           └── tickets
+│   │   │               ├── add_part_dialog.py
+│   │   │               ├── kanban_view.py
+│   │   │               ├── modern_tickets_tab.py
+│   │   │               ├── ticket_base.py
+│   │   │               ├── ticket_details_dialog.py
+│   │   │               ├── ticket_receipt_actions.py
+│   │   │               ├── ticket_receipt_controls.py
+│   │   │               ├── ticket_receipt_customer.py
+│   │   │               ├── ticket_receipt_device.py
+│   │   │               ├── ticket_receipt_issue.py
+│   │   │               ├── ticket_receipt.py
+│   │   │               └── tickets.py
+│   │   ├── technician_dropdown_FINAL_FIX.md
+│   │   ├── technician_dropdown_fix.md
+│   │   ├── technician_dropdown_testing.md
+│   │   ├── test_data
+│   │   │   └── settings
+│   │   │       └── user_999.json
+│   │   └── tests
+│   │       ├── fix_completed_tickets.py
+│   │       ├── fix_invoice_index.py
+│   │       ├── settings_window.py
+│   │       ├── test_currency_formatter.py
+│   │       ├── test_ini_load.py
+│   │       ├── test_language_manager.py
+│   │       ├── test_multilang_complete.py
+│   │       ├── test_status_history.py
+│   │       ├── test_technician_bonus.py
+│   │       ├── test_technician_performance.py
+│   │       ├── verify_app_health.py
+│   │       ├── verify_apply_credit_logic.py
+│   │       ├── verify_create_part.py
+│   │       ├── verify_customers_multilang.py
+│   │       ├── verify_di.py
+│   │       ├── verify_financial_tab_import.py
+│   │       ├── verify_imports.py
+│   │       ├── verify_inventory_multilang.py
+│   │       ├── verify_invoice_multilang.py
+│   │       ├── verify_invoices.py
+│   │       ├── verify_legacy_mapping.py
+│   │       ├── verify_multilang.py
+│   │       ├── verify_output_2.txt
+│   │       ├── verify_output.txt
+│   │       ├── verify_po_price_update.py
+│   │       ├── verify_po_workflow.py
+│   │       ├── verify_price_history.py
+│   │       ├── verify_settings.py
+│   │       ├── verify_supplier_creation.py
+│   │       ├── verify_ui.py
+│   │       └── verify_users_multilang.py
+│   └── backup_20251203_044512.zip
+├── backup.py
+├── dashboard_test_results.md
+├── database
+│   └── msa.db
+├── docs
+│   ├── ARCHITECTURE_DIAGRAMS.md
+│   ├── ASCII_OUTPUT
+│   │   ├── device_detail.txt
+│   │   ├── device_repair_parts_used.txt
+│   │   ├── new_repair_ticket.txt
+│   │   ├── repair_ticket_label.txt
+│   │   └── ticket_opening_form.txt
+│   ├── GOOGLE_3X_REFACTORING.md
+│   ├── IMPLEMENTATION_GUIDE.md
+│   ├── INDEX.md
+│   ├── mermaid_diagram
+│   │   ├── 00_MASTER_CLASS_DIAGRAM.mmd
+│   │   ├── 00_MASTER_DIAGRAM.mmd
+│   │   ├── 01_AUDIT_LOG.mmd
+│   │   ├── 02_BASE_MODEL.mmd
+│   │   ├── 03_CUSTOMER.mmd
+│   │   ├── 04_DEVICE.mmd
+│   │   ├── 05_PART.mmd
+│   │   ├── 06_PERMISSION.mmd
+│   │   ├── 07_REPAIR_PART.mmd
+│   │   ├── 08_ROLE.mmd
+│   │   ├── 09_TICKET.mmd
+│   │   ├── 10_USER.mmd
+│   │   ├── 11_NEW_TABLE.mmd
+│   │   ├── database_schma.mmd
+│   │   └── database_schma.png
+│   ├── notes
+│   │   ├── data_flow copy.mmd
+│   │   ├── data_flow.mmd
+│   │   ├── flow_idea.txt
+│   │   ├── repair_shop_management.png
+│   │   └── settings_ui.txt
+│   ├── README_REFACTORING.md
+│   └── REFACTORING_SUMMARY.md
+├── migrations
+│   ├── add_invoice_discount_shipping.py
+│   └── add_purchase_returns.py
+├── requirements-test.txt
+├── run_tests.py
+├── src
+│   └── app
+│       ├── __pycache__
+│       │   └── main.cpython-313.pyc
+│       ├── api
+│       ├── config
+│       │   ├── __pycache__
+│       │   │   ├── config_loader.cpython-313.pyc
+│       │   │   ├── config_manager.cpython-313.pyc
+│       │   │   ├── config.cpython-313.pyc
+│       │   │   ├── constants.cpython-313.pyc
+│       │   │   └── database.cpython-313.pyc
+│       │   ├── brand_model_compact.ini
+│       │   ├── brand_model.ini
+│       │   ├── config_loader.py
+│       │   ├── config_manager.py
+│       │   ├── config.py
+│       │   ├── constants.py
+│       │   ├── database.py
+│       │   ├── languages
+│       │   │   ├── burmese copy.ini
+│       │   │   ├── burmese.ini
+│       │   │   ├── en.ini
+│       │   │   ├── th.ini
+│       │   │   ├── vi.ini
+│       │   │   └── zh-cn.ini
+│       │   └── phone_error.ini
+│       ├── controllers
+│       │   ├── __pycache__
+│       │   │   ├── auth_controller.cpython-313.pyc
+│       │   │   ├── branch_controller.cpython-313.pyc
+│       │   │   ├── business_settings_controller.cpython-313.pyc
+│       │   │   ├── category_controller.cpython-313.pyc
+│       │   │   ├── customer_controller.cpython-313.pyc
+│       │   │   ├── device_controller.cpython-313.pyc
+│       │   │   ├── inventory_controller.cpython-313.pyc
+│       │   │   ├── invoice_controller.cpython-313.pyc
+│       │   │   ├── invoice_item_controller.cpython-313.pyc
+│       │   │   ├── job_controller.cpython-313.pyc
+│       │   │   ├── part_controller.cpython-313.pyc
+│       │   │   ├── payment_controller.cpython-313.pyc
+│       │   │   ├── purchase_order_controller.cpython-313.pyc
+│       │   │   ├── purchase_return_controller.cpython-313.pyc
+│       │   │   ├── repair_part_controller.cpython-313.pyc
+│       │   │   ├── report_controller.cpython-313.pyc
+│       │   │   ├── setting_controller.cpython-313.pyc
+│       │   │   ├── supplier_controller.cpython-313.pyc
+│       │   │   ├── technician_bonus_controller.cpython-313.pyc
+│       │   │   ├── technician_controller.cpython-313.pyc
+│       │   │   ├── technician_performance_controller.cpython-313.pyc
+│       │   │   ├── theme_controller.cpython-313.pyc
+│       │   │   ├── ticket_controller.cpython-313.pyc
+│       │   │   ├── warranty_controller.cpython-313.pyc
+│       │   │   └── work_log_controller.cpython-313.pyc
+│       │   ├── auth_controller.py
+│       │   ├── branch_controller.py
+│       │   ├── business_settings_controller.py
+│       │   ├── category_controller.py
+│       │   ├── customer_controller.py
+│       │   ├── device_controller.py
+│       │   ├── inventory_controller.py
+│       │   ├── invoice_controller.py
+│       │   ├── invoice_item_controller.py
+│       │   ├── job_controller.py
+│       │   ├── part_controller.py
+│       │   ├── payment_controller.py
+│       │   ├── purchase_order_controller.py
+│       │   ├── purchase_return_controller.py
+│       │   ├── repair_part_controller.py
+│       │   ├── report_controller.py
+│       │   ├── setting_controller.py
+│       │   ├── supplier_controller.py
+│       │   ├── technician_bonus_controller.py
+│       │   ├── technician_controller.py
+│       │   ├── technician_performance_controller.py
+│       │   ├── theme_controller.py
+│       │   ├── ticket_controller.py
+│       │   ├── warranty_controller.py
+│       │   └── work_log_controller.py
+│       ├── core
+│       │   ├── __pycache__
+│       │   │   ├── app.cpython-313.pyc
+│       │   │   ├── business_services.cpython-313.pyc
+│       │   │   ├── controllers.cpython-313.pyc
+│       │   │   ├── core_services.cpython-313.pyc
+│       │   │   ├── dependency_container.cpython-313.pyc
+│       │   │   └── repositories.cpython-313.pyc
+│       │   ├── app.py
+│       │   ├── business_services.py
+│       │   ├── controllers.py
+│       │   ├── core_services.py
+│       │   ├── dependency_container.py
+│       │   ├── event_bus.py
+│       │   ├── events.py
+│       │   └── repositories.py
+│       ├── database
+│       │   ├── msa.db
+│       │   ├── msa.db-shm
+│       │   └── msa.db-wal
+│       ├── dtos
+│       │   ├── __pycache__
+│       │   │   ├── customer_dto.cpython-313.pyc
+│       │   │   ├── device_dto.cpython-313.pyc
+│       │   │   └── ticket_dto.cpython-313.pyc
+│       │   ├── customer_dto.py
+│       │   ├── device_dto.py
+│       │   └── ticket_dto.py
+│       ├── interfaces
+│       │   ├── __pycache__
+│       │   │   ├── iaudit_service.cpython-313.pyc
+│       │   │   ├── iauth_service.cpython-313.pyc
+│       │   │   ├── ibranch_service.cpython-313.pyc
+│       │   │   ├── ibusiness_settings_service.cpython-313.pyc
+│       │   │   ├── icategory_service.cpython-313.pyc
+│       │   │   ├── icustomer_service.cpython-313.pyc
+│       │   │   ├── idevice_service.cpython-313.pyc
+│       │   │   ├── iinvoice_item_service.cpython-313.pyc
+│       │   │   ├── iinvoice_service.cpython-313.pyc
+│       │   │   ├── ipart_service.cpython-313.pyc
+│       │   │   ├── ipayment_service.cpython-313.pyc
+│       │   │   ├── ipurchase_order_service.cpython-313.pyc
+│       │   │   ├── irepair_part_service.cpython-313.pyc
+│       │   │   ├── irole_service.cpython-313.pyc
+│       │   │   ├── isupplier_service.cpython-313.pyc
+│       │   │   ├── itechnician_service.cpython-313.pyc
+│       │   │   ├── iticket_service.cpython-313.pyc
+│       │   │   ├── iwarranty_service.cpython-313.pyc
+│       │   │   └── iwork_log_service.cpython-313.pyc
+│       │   ├── iaudit_service.py
+│       │   ├── iauth_service.py
+│       │   ├── ibranch_service.py
+│       │   ├── ibusiness_settings_service.py
+│       │   ├── icategory_service.py
+│       │   ├── icustomer_service.py
+│       │   ├── idevice_service.py
+│       │   ├── iinvoice_item_service.py
+│       │   ├── iinvoice_service.py
+│       │   ├── ipart_service.py
+│       │   ├── ipayment_service.py
+│       │   ├── ipurchase_order_service.py
+│       │   ├── irepair_part_service.py
+│       │   ├── irole_service.py
+│       │   ├── isupplier_service.py
+│       │   ├── itechnician_service.py
+│       │   ├── iticket_service.py
+│       │   ├── iwarranty_service.py
+│       │   └── iwork_log_service.py
+│       ├── main.py
+│       ├── migrations
+│       │   ├── __pycache__
+│       │   │   └── add_technician_bonus_performance.cpython-313.pyc
+│       │   └── add_technician_bonus_performance.py
+│       ├── models
+│       │   ├── __pycache__
+│       │   │   ├── audit_log.cpython-313.pyc
+│       │   │   ├── base_model.cpython-313.pyc
+│       │   │   ├── branch.cpython-313.pyc
+│       │   │   ├── business_settings.cpython-313.pyc
+│       │   │   ├── category.cpython-313.pyc
+│       │   │   ├── credit_note.cpython-313.pyc
+│       │   │   ├── customer.cpython-313.pyc
+│       │   │   ├── device.cpython-313.pyc
+│       │   │   ├── inventory_log.cpython-313.pyc
+│       │   │   ├── invoice_item.cpython-313.pyc
+│       │   │   ├── invoice.cpython-313.pyc
+│       │   │   ├── part.cpython-313.pyc
+│       │   │   ├── payment.cpython-313.pyc
+│       │   │   ├── permission.cpython-313.pyc
+│       │   │   ├── price_history.cpython-313.pyc
+│       │   │   ├── purchase_order_item.cpython-313.pyc
+│       │   │   ├── purchase_order.cpython-313.pyc
+│       │   │   ├── purchase_return_item.cpython-313.pyc
+│       │   │   ├── purchase_return.cpython-313.pyc
+│       │   │   ├── repair_part.cpython-313.pyc
+│       │   │   ├── role_permission.cpython-313.pyc
+│       │   │   ├── role.cpython-313.pyc
+│       │   │   ├── status_history.cpython-313.pyc
+│       │   │   ├── supplier_invoice.cpython-313.pyc
+│       │   │   ├── supplier_payment.cpython-313.pyc
+│       │   │   ├── supplier.cpython-313.pyc
+│       │   │   ├── technician_bonus.cpython-313.pyc
+│       │   │   ├── technician_performance.cpython-313.pyc
+│       │   │   ├── technician.cpython-313.pyc
+│       │   │   ├── ticket.cpython-313.pyc
+│       │   │   ├── user.cpython-313.pyc
+│       │   │   ├── warranty.cpython-313.pyc
+│       │   │   └── work_log.cpython-313.pyc
+│       │   ├── audit_log.py
+│       │   ├── base_model.py
+│       │   ├── branch.py
+│       │   ├── business_settings.py
+│       │   ├── category.py
+│       │   ├── credit_note.py
+│       │   ├── customer.py
+│       │   ├── device.py
+│       │   ├── inventory_log.py
+│       │   ├── invoice_item.py
+│       │   ├── invoice.py
+│       │   ├── part.py
+│       │   ├── payment.py
+│       │   ├── permission.py
+│       │   ├── price_history.py
+│       │   ├── purchase_order_item.py
+│       │   ├── purchase_order.py
+│       │   ├── purchase_return_item.py
+│       │   ├── purchase_return.py
+│       │   ├── repair_part.py
+│       │   ├── role_permission.py
+│       │   ├── role.py
+│       │   ├── status_history.py
+│       │   ├── supplier_invoice.py
+│       │   ├── supplier_payment.py
+│       │   ├── supplier.py
+│       │   ├── technician_bonus.py
+│       │   ├── technician_performance.py
+│       │   ├── technician.py
+│       │   ├── ticket.py
+│       │   ├── user.py
+│       │   ├── warranty.py
+│       │   └── work_log.py
+│       ├── repositories
+│       │   ├── __pycache__
+│       │   │   ├── branch_repository.cpython-313.pyc
+│       │   │   ├── business_settings_repository.cpython-313.pyc
+│       │   │   ├── category_repository.cpython-313.pyc
+│       │   │   ├── credit_note_repository.cpython-313.pyc
+│       │   │   ├── customer_repository.cpython-313.pyc
+│       │   │   ├── device_repository.cpython-313.pyc
+│       │   │   ├── inventory_log_repository.cpython-313.pyc
+│       │   │   ├── invoice_item_repository.cpython-313.pyc
+│       │   │   ├── invoice_repository.cpython-313.pyc
+│       │   │   ├── job_repository.cpython-313.pyc
+│       │   │   ├── part_repository.cpython-313.pyc
+│       │   │   ├── payment_repository.cpython-313.pyc
+│       │   │   ├── price_history_repository.cpython-313.pyc
+│       │   │   ├── purchase_order_item_repository.cpython-313.pyc
+│       │   │   ├── purchase_order_repository.cpython-313.pyc
+│       │   │   ├── purchase_return_item_repository.cpython-313.pyc
+│       │   │   ├── purchase_return_repository.cpython-313.pyc
+│       │   │   ├── repair_part_repository.cpython-313.pyc
+│       │   │   ├── role_repository.cpython-313.pyc
+│       │   │   ├── status_history_repository.cpython-313.pyc
+│       │   │   ├── supplier_invoice_repository.cpython-313.pyc
+│       │   │   ├── supplier_payment_repository.cpython-313.pyc
+│       │   │   ├── supplier_repository.cpython-313.pyc
+│       │   │   ├── technician_repository.cpython-313.pyc
+│       │   │   ├── ticket_repository.cpython-313.pyc
+│       │   │   ├── user_repository.cpython-313.pyc
+│       │   │   ├── warranty_repository.cpython-313.pyc
+│       │   │   └── work_log_repository.cpython-313.pyc
+│       │   ├── branch_repository.py
+│       │   ├── business_settings_repository.py
+│       │   ├── category_repository.py
+│       │   ├── credit_note_repository.py
+│       │   ├── customer_repository.py
+│       │   ├── device_repository.py
+│       │   ├── inventory_log_repository.py
+│       │   ├── invoice_item_repository.py
+│       │   ├── invoice_repository.py
+│       │   ├── job_repository.py
+│       │   ├── part_repository.py
+│       │   ├── payment_repository.py
+│       │   ├── price_history_repository.py
+│       │   ├── purchase_order_item_repository.py
+│       │   ├── purchase_order_repository.py
+│       │   ├── purchase_return_item_repository.py
+│       │   ├── purchase_return_repository.py
+│       │   ├── repair_part_repository.py
+│       │   ├── role_repository.py
+│       │   ├── status_history_repository.py
+│       │   ├── supplier_invoice_repository.py
+│       │   ├── supplier_payment_repository.py
+│       │   ├── supplier_repository.py
+│       │   ├── technician_repository.py
+│       │   ├── ticket_repository.py
+│       │   ├── user_repository.py
+│       │   ├── warranty_repository.py
+│       │   └── work_log_repository.py
+│       ├── services
+│       │   ├── __pycache__
+│       │   │   ├── audit_service.cpython-313.pyc
+│       │   │   ├── auth_service.cpython-313.pyc
+│       │   │   ├── branch_service.cpython-313.pyc
+│       │   │   ├── business_settings_service.cpython-313.pyc
+│       │   │   ├── category_service.cpython-313.pyc
+│       │   │   ├── credit_note_service.cpython-313.pyc
+│       │   │   ├── customer_service.cpython-313.pyc
+│       │   │   ├── device_service.cpython-313.pyc
+│       │   │   ├── invoice_item_service.cpython-313.pyc
+│       │   │   ├── invoice_service.cpython-313.pyc
+│       │   │   ├── part_service.cpython-313.pyc
+│       │   │   ├── payment_service.cpython-313.pyc
+│       │   │   ├── purchase_order_service.cpython-313.pyc
+│       │   │   ├── purchase_return_service.cpython-313.pyc
+│       │   │   ├── repair_part_service.cpython-313.pyc
+│       │   │   ├── report_service.cpython-313.pyc
+│       │   │   ├── role_service.cpython-313.pyc
+│       │   │   ├── settings_service.cpython-313.pyc
+│       │   │   ├── supplier_invoice_service.cpython-313.pyc
+│       │   │   ├── supplier_payment_service.cpython-313.pyc
+│       │   │   ├── supplier_service.cpython-313.pyc
+│       │   │   ├── technician_service.cpython-313.pyc
+│       │   │   ├── ticket_service.cpython-313.pyc
+│       │   │   ├── warranty_service.cpython-313.pyc
+│       │   │   └── work_log_service.cpython-313.pyc
+│       │   ├── audit_service.py
+│       │   ├── auth_service.py
+│       │   ├── branch_service.py
+│       │   ├── business_settings_service.py
+│       │   ├── category_service.py
+│       │   ├── credit_note_service.py
+│       │   ├── customer_service.py
+│       │   ├── device_service.py
+│       │   ├── invoice_item_service.py
+│       │   ├── invoice_service.py
+│       │   ├── part_service.py
+│       │   ├── payment_service.py
+│       │   ├── purchase_order_service.py
+│       │   ├── purchase_return_service.py
+│       │   ├── repair_part_service.py
+│       │   ├── report_service.py
+│       │   ├── role_service.py
+│       │   ├── settings_service.py
+│       │   ├── supplier_invoice_service.py
+│       │   ├── supplier_payment_service.py
+│       │   ├── supplier_service.py
+│       │   ├── technician_service.py
+│       │   ├── ticket_service.py
+│       │   ├── warranty_service.py
+│       │   └── work_log_service.py
+│       ├── static
+│       │   ├── barcodes
+│       │   ├── css
+│       │   ├── icons
+│       │   │   ├── add-ticket.png
+│       │   │   ├── checkmark-white.png
+│       │   │   ├── checkmark.png
+│       │   │   ├── customers.png
+│       │   │   ├── dashboard.png
+│       │   │   ├── device.png
+│       │   │   ├── edit.png
+│       │   │   ├── eye.png
+│       │   │   ├── info.png
+│       │   │   ├── inventory.png
+│       │   │   ├── jobs.png
+│       │   │   ├── logout.png
+│       │   │   ├── plus.png
+│       │   │   ├── reports.png
+│       │   │   ├── settings.png
+│       │   │   ├── technician.png
+│       │   │   ├── ticket.png
+│       │   │   ├── trash.png
+│       │   │   └── user-add.png
+│       │   ├── images
+│       │   └── theme
+│       │       ├── static
+│       │       │   └── icons
+│       │       │       └── checkmark-white.png
+│       │       ├── theme-dark.css
+│       │       └── theme-light.css
+│       ├── utils
+│       │   ├── __pycache__
+│       │   │   ├── currency_formatter.cpython-313.pyc
+│       │   │   ├── language_manager.cpython-313.pyc
+│       │   │   ├── performance_charts.cpython-313.pyc
+│       │   │   └── performance_export.cpython-313.pyc
+│       │   ├── currency_formatter.py
+│       │   ├── language_manager.py
+│       │   ├── performance_charts.py
+│       │   ├── performance_export.py
+│       │   ├── print
+│       │   │   ├── __pycache__
+│       │   │   │   ├── invoice_generator.cpython-313.pyc
+│       │   │   │   ├── purchase_order_generator.cpython-313.pyc
+│       │   │   │   └── ticket_generator.cpython-313.pyc
+│       │   │   ├── invoice_generator.py
+│       │   │   ├── purchase_order_generator.py
+│       │   │   └── ticket_generator.py
+│       │   ├── security
+│       │   │   ├── __pycache__
+│       │   │   │   └── password_utils.cpython-313.pyc
+│       │   │   └── password_utils.py
+│       │   ├── tools
+│       │   │   ├── __pycache__
+│       │   │   │   ├── convert_brand_model.cpython-313.pyc
+│       │   │   │   └── gsmarea_scraperv2.cpython-313.pyc
+│       │   │   ├── convert_brand_model.py
+│       │   │   └── gsmarea_scraperv2.py
+│       │   └── validation
+│       │       ├── __pycache__
+│       │       │   ├── input_validator.cpython-313.pyc
+│       │       │   ├── message_handler.cpython-313.pyc
+│       │       │   └── phone_formatter.cpython-313.pyc
+│       │       ├── input_validator.py
+│       │       ├── message_handler.py
+│       │       └── phone_formatter.py
+│       └── views
+│           ├── __pycache__
+│           │   ├── dashboard.cpython-313.pyc
+│           │   ├── main_window.cpython-313.pyc
+│           │   └── modern_dashboard.cpython-313.pyc
+│           ├── admin
+│           │   ├── __pycache__
+│           │   │   └── dashboard.cpython-313.pyc
+│           │   └── dashboard.py
+│           ├── auth
+│           │   ├── __pycache__
+│           │   │   ├── login.cpython-313.pyc
+│           │   │   └── register.cpython-313.pyc
+│           │   ├── login.py
+│           │   └── register.py
+│           ├── components
+│           │   ├── __pycache__
+│           │   │   ├── base_details_dialog.cpython-313.pyc
+│           │   │   ├── customer_input.cpython-313.pyc
+│           │   │   ├── dashboard_charts.cpython-313.pyc
+│           │   │   ├── device_info_widget.cpython-313.pyc
+│           │   │   ├── device_input.cpython-313.pyc
+│           │   │   └── metric_card.cpython-313.pyc
+│           │   ├── base_details_dialog.py
+│           │   ├── customer_input.py
+│           │   ├── dashboard_charts.py
+│           │   ├── device_info_widget.py
+│           │   ├── device_input.py
+│           │   └── metric_card.py
+│           ├── customer
+│           │   ├── __pycache__
+│           │   │   ├── customer_details_dialog.cpython-313.pyc
+│           │   │   ├── customer_form.cpython-313.pyc
+│           │   │   ├── customers.cpython-313.pyc
+│           │   │   └── modern_customers_tab.cpython-313.pyc
+│           │   ├── customer_details_dialog.py
+│           │   ├── customer_form.py
+│           │   ├── customers.py
+│           │   └── modern_customers_tab.py
+│           ├── dashboard.py
+│           ├── device
+│           │   ├── __pycache__
+│           │   │   ├── device_details_dialog.cpython-313.pyc
+│           │   │   ├── device_form.cpython-313.pyc
+│           │   │   ├── devices.cpython-313.pyc
+│           │   │   └── modern_devices_tab.cpython-313.pyc
+│           │   ├── device_details_dialog.py
+│           │   ├── device_form.py
+│           │   ├── devices.py
+│           │   └── modern_devices_tab.py
+│           ├── inventory
+│           │   ├── __pycache__
+│           │   │   ├── category_list_tab.cpython-313.pyc
+│           │   │   ├── create_invoice_dialog.cpython-313.pyc
+│           │   │   ├── inventory.cpython-313.pyc
+│           │   │   ├── modern_category_list_tab.cpython-313.pyc
+│           │   │   ├── modern_inventory.cpython-313.pyc
+│           │   │   ├── modern_parts_list_tab.cpython-313.pyc
+│           │   │   ├── modern_supplier_list_tab.cpython-313.pyc
+│           │   │   ├── part_details_dialog.cpython-313.pyc
+│           │   │   ├── part_dialog.cpython-313.pyc
+│           │   │   ├── parts_list_tab.cpython-313.pyc
+│           │   │   ├── purchase_order_dialog.cpython-313.pyc
+│           │   │   ├── purchase_order_list_dialog.cpython-313.pyc
+│           │   │   ├── purchase_return_details_dialog.cpython-313.pyc
+│           │   │   ├── purchase_return_dialog.cpython-313.pyc
+│           │   │   ├── record_payment_dialog.cpython-313.pyc
+│           │   │   ├── restock_dialog.cpython-313.pyc
+│           │   │   ├── supplier_details_dialog.cpython-313.pyc
+│           │   │   ├── supplier_dialog.cpython-313.pyc
+│           │   │   └── supplier_list_tab.cpython-313.pyc
+│           │   ├── category_list_tab.py
+│           │   ├── create_invoice_dialog.py
+│           │   ├── financial
+│           │   │   ├── __pycache__
+│           │   │   │   ├── apply_credit_dialog.cpython-313.pyc
+│           │   │   │   ├── credit_note_details_dialog.cpython-313.pyc
+│           │   │   │   ├── credit_note_list_tab.cpython-313.pyc
+│           │   │   │   ├── invoice_edit_dialog.cpython-313.pyc
+│           │   │   │   ├── invoice_list_tab.cpython-313.pyc
+│           │   │   │   ├── payment_list_tab.cpython-313.pyc
+│           │   │   │   ├── purchase_order_list_tab.cpython-313.pyc
+│           │   │   │   └── purchase_return_list_tab.cpython-313.pyc
+│           │   │   ├── apply_credit_dialog.py
+│           │   │   ├── credit_note_details_dialog.py
+│           │   │   ├── credit_note_list_tab.py
+│           │   │   ├── invoice_edit_dialog.py
+│           │   │   ├── invoice_list_tab.py
+│           │   │   ├── payment_list_tab.py
+│           │   │   ├── purchase_order_list_tab.py
+│           │   │   └── purchase_return_list_tab.py
+│           │   ├── inventory.py
+│           │   ├── modern_category_list_tab.py
+│           │   ├── modern_inventory.py
+│           │   ├── modern_parts_list_tab.py
+│           │   ├── modern_supplier_list_tab.py
+│           │   ├── part_details_dialog.py
+│           │   ├── part_dialog.py
+│           │   ├── parts_list_tab.py
+│           │   ├── purchase_order_dialog.py
+│           │   ├── purchase_order_list_dialog.py
+│           │   ├── purchase_return_details_dialog.py
+│           │   ├── purchase_return_dialog.py
+│           │   ├── record_payment_dialog.py
+│           │   ├── restock_dialog.py
+│           │   ├── supplier_details_dialog.py
+│           │   ├── supplier_dialog.py
+│           │   └── supplier_list_tab.py
+│           ├── invoice
+│           │   ├── __pycache__
+│           │   │   ├── create_customer_invoice_dialog.cpython-313.pyc
+│           │   │   ├── customer_invoice_details_dialog.cpython-313.pyc
+│           │   │   ├── modern_invoice_tab copy.cpython-313.pyc
+│           │   │   ├── modern_invoice_tab.cpython-313.pyc
+│           │   │   └── record_customer_payment_dialog.cpython-313.pyc
+│           │   ├── create_customer_invoice_dialog.py
+│           │   ├── customer_invoice_details_dialog.py
+│           │   ├── modern_invoice_tab copy.py
+│           │   ├── modern_invoice_tab.py
+│           │   └── record_customer_payment_dialog.py
+│           ├── job
+│           │   ├── __pycache__
+│           │   │   └── jobs.cpython-313.pyc
+│           │   └── jobs.py
+│           ├── main_window.py
+│           ├── modern_dashboard.py
+│           ├── report
+│           │   ├── __pycache__
+│           │   │   ├── modern_reports.cpython-313.pyc
+│           │   │   └── reports.cpython-313.pyc
+│           │   ├── modern_reports.py
+│           │   └── reports.py
+│           ├── setting
+│           │   ├── __pycache__
+│           │   │   └── settings.cpython-313.pyc
+│           │   ├── settings.py
+│           │   └── tabs
+│           │       ├── __pycache__
+│           │       │   ├── business.cpython-313.pyc
+│           │       │   ├── categories.cpython-313.pyc
+│           │       │   ├── general.cpython-313.pyc
+│           │       │   └── users.cpython-313.pyc
+│           │       ├── business.py
+│           │       ├── categories.py
+│           │       ├── general.py
+│           │       └── users.py
+│           ├── technician
+│           │   ├── __pycache__
+│           │   │   ├── bonus_management_dialog.cpython-313.pyc
+│           │   │   ├── performance_dashboard_dialog.cpython-313.pyc
+│           │   │   ├── technician_details_dialog.cpython-313.pyc
+│           │   │   └── technicians.cpython-313.pyc
+│           │   ├── bonus_management_dialog.py
+│           │   ├── performance_dashboard_dialog.py
+│           │   ├── technician_details_dialog.py
+│           │   └── technicians.py
+│           └── tickets
+│               ├── __pycache__
+│               │   ├── add_part_dialog.cpython-313.pyc
+│               │   ├── kanban_view.cpython-313.pyc
+│               │   ├── modern_ticket_receipt.cpython-313.pyc
+│               │   ├── modern_tickets_tab.cpython-313.pyc
+│               │   ├── ticket_base.cpython-313.pyc
+│               │   ├── ticket_details_dialog.cpython-313.pyc
+│               │   ├── ticket_receipt_actions.cpython-313.pyc
+│               │   ├── ticket_receipt_controls.cpython-313.pyc
+│               │   ├── ticket_receipt_customer.cpython-313.pyc
+│               │   ├── ticket_receipt_device.cpython-313.pyc
+│               │   ├── ticket_receipt_issue.cpython-313.pyc
+│               │   ├── ticket_receipt.cpython-313.pyc
+│               │   └── tickets.cpython-313.pyc
+│               ├── add_part_dialog.py
+│               ├── kanban_view.py
+│               ├── modern_tickets_tab.py
+│               ├── ticket_base.py
+│               ├── ticket_details_dialog.py
+│               ├── ticket_receipt_actions.py
+│               ├── ticket_receipt_controls.py
+│               ├── ticket_receipt_customer.py
+│               ├── ticket_receipt_device.py
+│               ├── ticket_receipt_issue.py
+│               ├── ticket_receipt.py
+│               └── tickets.py
+├── TASK_1_CHECKLIST.md
+├── TASK_2_COMPLETE.md
+├── TASK_3_COMPLETE.md
+├── TASKS.md
+├── technician_dropdown_FINAL_FIX.md
+├── technician_dropdown_fix.md
+├── technician_dropdown_testing.md
+├── test_data
+│   └── settings
+│       └── user_999.json
+├── TEST_RESULTS.md
+├── tests
+│   ├── __pycache__
+│   │   ├── test_modern_tickets_tab.cpython-313-pytest-9.0.1.pyc
+│   │   └── test_ticket_details_dialog.cpython-313-pytest-9.0.1.pyc
+│   ├── fix_completed_tickets.py
+│   ├── fix_invoice_index.py
+│   ├── README_TESTS.md
+│   ├── settings_window.py
+│   ├── test_currency_formatter.py
+│   ├── test_ini_load.py
+│   ├── test_language_manager.py
+│   ├── test_modern_tickets_tab.py
+│   ├── test_multilang_complete.py
+│   ├── test_status_history.py
+│   ├── test_technician_bonus.py
+│   ├── test_technician_performance.py
+│   ├── test_ticket_details_dialog.py
+│   ├── verify_app_health.py
+│   ├── verify_apply_credit_logic.py
+│   ├── verify_create_part.py
+│   ├── verify_customers_multilang.py
+│   ├── verify_di.py
+│   ├── verify_financial_tab_import.py
+│   ├── verify_imports.py
+│   ├── verify_inventory_multilang.py
+│   ├── verify_invoice_multilang.py
+│   ├── verify_invoices.py
+│   ├── verify_legacy_mapping.py
+│   ├── verify_multilang.py
+│   ├── verify_output_2.txt
+│   ├── verify_output.txt
+│   ├── verify_po_price_update.py
+│   ├── verify_po_workflow.py
+│   ├── verify_price_history.py
+│   ├── verify_settings.py
+│   ├── verify_supplier_creation.py
+│   ├── verify_ui.py
+│   └── verify_users_multilang.py
+└── tree.txt
+
+237 directories, 1579 files

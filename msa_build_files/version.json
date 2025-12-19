@@ -1,0 +1,16 @@
+{
+  "version": "1.0.2",
+  "full_version": "1.0.2+build.472.unknown",
+  "major": 1,
+  "minor": 0,
+  "patch": 2,
+  "build": 472,
+  "git": {
+    "commit": "unknown",
+    "branch": "unknown",
+    "tag": "v1.0.2",
+    "dirty": false
+  },
+  "build_date": "2025-12-16T07:10:07.213388",
+  "build_timestamp": 1765845607
+}

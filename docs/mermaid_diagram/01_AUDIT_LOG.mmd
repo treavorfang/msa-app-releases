@@ -1,0 +1,17 @@
+classDiagram
+    class AuditLog {
+        +user: ForeignKey~User~
+        +action: CharField
+        +details: TextField
+        +ip_address: CharField
+        +created_at: DateTimeField
+        +table_name: CharField
+        +record_id: IntegerField
+        +old_data: TextField
+        +new_data: TextField
+        +clean()
+        +save()
+        +log_change()
+        +log_simple_event()
+    }
+    AuditLog "1" --> "0..*" User

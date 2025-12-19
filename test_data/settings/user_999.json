@@ -1,0 +1,12 @@
+{
+  "language": "Spanish",
+  "date_format": "DD/MM/YYYY",
+  "time_format": "12-hour",
+  "font_size": "Medium",
+  "startup_view": "Show Dashboard",
+  "session_timeout": 30,
+  "notify_email": true,
+  "notify_desktop": true,
+  "notify_sound": false,
+  "theme": "light"
+}

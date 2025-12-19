@@ -1,0 +1,20 @@
+qt.qpa.fonts: Populating font family aliases took 383 ms. Replace uses of missing font family "-apple-system" with one that exists to avoid this cost. 
+I1206 15:25:12.574190 8456511616 category.py:224] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+I1206 15:25:12.575051 8456511616 category.py:224] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+qt.text.font.db: OpenType support missing for "Roboto", script 11
+🚀 Starting MSA in development mode
+📊 Configuration: {'env': 'development', 'db_path': None, 'db_debug': False, 'port': 8000, 'debug': False, 'log_level': 'INFO', 'theme': 'dark', 'language': 'en', 'company_name': None, 'currency': 'MMK', 'enable_analytics': True, 'enable_reports': True, 'enable_eventbus': True, 'cache_size_mb': 64, 'max_workers': 4}
+🔧 Updating version information...
+✅ Version updated (Changes will apply on next restart)
+   📦 Version: 1.0.0+build.19.unknown
+Running database migrations...
+DEBUG: _load_invoices called
+DEBUG: Retrieved 0 invoices
+DEBUG: After filters: 0 invoices
+DEBUG: Updating summary cards...
+DEBUG: Summary cards updated
+DEBUG: Displaying in cards view
+DEBUG: View populated successfully
+DEBUG: Executing fixed _load_devices
+DEBUG: Executing fixed _load_devices
+Creating auto-backup on exit...
