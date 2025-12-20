@@ -25,22 +25,26 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-echo -e "${YELLOW}Step 1: Archiving and cleaning previous build artifacts...${NC}"
-rm -rf build
-if [ -d "dist" ]; then
-    # Try to get version from version.json
-    if [ -f "version.json" ]; then
-        OLD_VER=$(python3 -c "import json; print(json.load(open('version.json'))['version'])")
-        BUILD_TIME=$(date +%Y%m%d_%H%M%S)
-        ARCHIVE_NAME="dist_v${OLD_VER}_${BUILD_TIME}"
-        echo "Archiving existing dist to $ARCHIVE_NAME..."
-        mv dist "$ARCHIVE_NAME"
-    else
-        echo "Cleaning dist directory..."
-        rm -rf dist
+if [ -z "$SKIP_BUILD" ]; then
+    echo -e "${YELLOW}Step 1: Archiving and cleaning previous build artifacts...${NC}"
+    rm -rf build
+    if [ -d "dist" ]; then
+        # Try to get version from version.json
+        if [ -f "version.json" ]; then
+            OLD_VER=$(python3 -c "import json; print(json.load(open('version.json'))['version'])")
+            BUILD_TIME=$(date +%Y%m%d_%H%M%S)
+            ARCHIVE_NAME="dist_v${OLD_VER}_${BUILD_TIME}"
+            echo "Archiving existing dist to $ARCHIVE_NAME..."
+            mv dist "$ARCHIVE_NAME"
+        else
+            echo "Cleaning dist directory..."
+            rm -rf dist
+        fi
     fi
+    echo -e "${GREEN}✓ Cleaned build directories and archived previous dist${NC}"
+else
+    echo -e "${YELLOW}⚠ Skipping clean build artifacts (SKIP_BUILD set)${NC}"
 fi
-echo -e "${GREEN}✓ Cleaned build directories and archived previous dist${NC}"
 echo ""
 
 echo -e "${YELLOW}Step 2: Checking Python environment...${NC}"
@@ -111,14 +115,18 @@ fi
 echo ""
 
 echo -e "${YELLOW}Step 7: Building application with PyInstaller...${NC}"
-echo "This may take several minutes..."
-python3 -m PyInstaller release_mac.spec --clean --noconfirm
+if [ -z "$SKIP_BUILD" ]; then
+    echo "This may take several minutes..."
+    python3 -m PyInstaller release_mac.spec --clean --noconfirm
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}✗ Build failed!${NC}"
-    exit 1
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ Build failed!${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Build completed successfully${NC}"
+else
+    echo -e "${YELLOW}⚠ Skipping PyInstaller build (SKIP_BUILD set)${NC}"
 fi
-echo -e "${GREEN}✓ Build completed successfully${NC}"
 echo ""
 
 echo -e "${YELLOW}Step 8: Verifying build output...${NC}"
@@ -133,7 +141,7 @@ APP_SIZE=$(du -sh "$APP_PATH" | cut -f1)
 echo -e "${GREEN}✓ Application bundle created: $APP_SIZE${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 9: Creating DMG installer (optional)...${NC}"
+echo -e "${YELLOW}Step 9: Creating DMG installer (with custom layout)...${NC}"
 DMG_NAME="MSA-Installer.dmg"
 DMG_PATH="dist/$DMG_NAME"
 
@@ -142,15 +150,39 @@ if [ -f "$DMG_PATH" ]; then
     rm "$DMG_PATH"
 fi
 
-# Create DMG
-echo "Creating disk image..."
-hdiutil create -volname "MSA Installer" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+# Prepare background image
+BG_IMAGE_SOURCE="/Users/studiotai/.gemini/antigravity/brain/318fff71-0e41-4de5-9c3b-ec1fd7a6d37a/dmg_background_final.png"
+BG_IMAGE_DEST="dist/dmg_background.png"
 
-if [ $? -eq 0 ]; then
+if [ -f "$BG_IMAGE_SOURCE" ]; then
+    echo "Using custom background image..."
+    cp "$BG_IMAGE_SOURCE" "$BG_IMAGE_DEST"
+    
+    # Create DMG using create-dmg
+    echo "Running create-dmg..."
+    create-dmg \
+      --volname "MSA Installer" \
+      --background "$BG_IMAGE_DEST" \
+      --window-pos 200 120 \
+      --window-size 600 400 \
+      --icon-size 100 \
+      --icon "MSA.app" 175 190 \
+      --hide-extension "MSA.app" \
+      --app-drop-link 425 190 \
+      --no-internet-enable \
+      "$DMG_PATH" \
+      "$APP_PATH"
+else
+    echo "Background image not found at $BG_IMAGE_SOURCE, falling back to simple DMG..."
+    hdiutil create -volname "MSA Installer" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+fi
+
+if [ -f "$DMG_PATH" ]; then
     DMG_SIZE=$(du -sh "$DMG_PATH" | cut -f1)
     echo -e "${GREEN}✓ DMG created: $DMG_SIZE${NC}"
 else
-    echo -e "${YELLOW}⚠ DMG creation failed (optional step)${NC}"
+    echo -e "${RED}✗ DMG creation failed${NC}"
+    exit 1
 fi
 echo ""
 

@@ -15,7 +15,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont, QPixmap, QIcon
 
-from config.config import APP_NAME, COMPANY_NAME, ICON_PATHS, DEVELOPER_NAME
+from config.config import APP_NAME, COMPANY_NAME, ICON_PATHS, DEVELOPER_NAME, SETTINGS_ORGANIZATION, SETTINGS_APPLICATION, THEME_SETTING_KEY
+from PySide6.QtCore import QSettings
+from utils.language_manager import language_manager
+
 # Attempt to import version info, fallback to defaults
 try:
     from version import (
@@ -23,8 +26,8 @@ try:
         GIT_COMMIT, GIT_BRANCH, GIT_TAG
     )
 except ImportError:
-    VERSION = "1.0.2"
-    FULL_VERSION = "1.0.2+dev"
+    VERSION = "1.0.4"
+    FULL_VERSION = "1.0.4+dev"
     BUILD_NUMBER = 0
     BUILD_DATE = datetime.now().strftime("%Y-%m-%d")
     GIT_COMMIT = "unknown"
@@ -34,7 +37,6 @@ except ImportError:
 from services.update_service import UpdateService
 from views.dialogs.update_dialog import UpdateDialog
 
-from utils.language_manager import language_manager
 
 class AboutDialog(QDialog):
     """Modern About dialog showing application information."""
@@ -48,16 +50,39 @@ class AboutDialog(QDialog):
         self.setMinimumSize(600, 450)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         
-        # Determine theme colors (Defaulting to Dark Modern for consistency with upgrade)
-        self.colors = {
-            "bg_primary": "#1F2937",    # Gray 800
-            "bg_secondary": "#374151",  # Gray 700
-            "text_primary": "#F9FAFB",  # Gray 50
-            "text_secondary": "#9CA3AF",# Gray 400
-            "accent": "#3B82F6",        # Blue 500
-            "accent_hover": "#2563EB",  # Blue 600
-            "border": "#4B5563"         # Gray 600
-        }
+        # Determine theme
+        is_dark = True
+        try:
+            settings = QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION)
+            theme = settings.value(THEME_SETTING_KEY, "dark")
+            # print(f"DEBUG: AboutDialog raw theme value: {theme}")
+            if isinstance(theme, str):
+                theme = theme.lower().strip('"').strip("'")
+            is_dark = (theme == "dark")
+            # print(f"DEBUG: AboutDialog is_dark: {is_dark}")
+        except Exception as e:
+            print(f"Error determining theme in AboutDialog: {e}")
+
+        if is_dark:
+            self.colors = {
+                "bg_primary": "#1F2937",    # Gray 800
+                "bg_secondary": "#374151",  # Gray 700
+                "text_primary": "#F9FAFB",  # Gray 50
+                "text_secondary": "#9CA3AF",# Gray 400
+                "accent": "#3B82F6",        # Blue 500
+                "accent_hover": "#2563EB",  # Blue 600
+                "border": "#4B5563"         # Gray 600
+            }
+        else:
+            self.colors = {
+                "bg_primary": "#FFFFFF",    # White
+                "bg_secondary": "#F3F4F6",  # Gray 100
+                "text_primary": "#111827",  # Gray 900
+                "text_secondary": "#6B7280",# Gray 500
+                "accent": "#3B82F6",        # Blue 500
+                "accent_hover": "#2563EB",  # Blue 600
+                "border": "#E5E7EB"         # Gray 200
+            }
         
         # Apply dialog-wide stylesheet
         self.setStyleSheet(f"""
@@ -75,22 +100,27 @@ class AboutDialog(QDialog):
                 top: -1px; 
             }}
             QTabBar::tab {{
-                background: {self.colors['bg_primary']};
+                background: {self.colors['bg_secondary']};
                 color: {self.colors['text_secondary']};
                 border: 1px solid {self.colors['border']};
                 padding: 8px 16px;
                 margin-right: 4px;
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
+                min-height: 25px;
             }}
             QTabBar::tab:selected {{
-                background: {self.colors['bg_secondary']};
-                color: {self.colors['text_primary']};
+                background: {self.colors['bg_primary']};  /* Selected tab matches content bg */
+                color: {self.colors['accent']};           /* Accent color for text */
+                font-weight: bold;
                 border-bottom: 2px solid {self.colors['accent']};
             }}
             QScrollArea {{
                 border: none;
-                background: transparent;
+                background-color: transparent;
+            }}
+            QScrollArea > QWidget > QWidget {{
+                background-color: transparent;
             }}
             QScrollBar:vertical {{
                 border: none;
@@ -102,6 +132,10 @@ class AboutDialog(QDialog):
                 background: {self.colors['border']};
                 min-height: 20px;
                 border-radius: 4px;
+            }}
+            /* Ensure text labels inside scroll areas don't get default backgrounds */
+            QScrollArea QLabel {{
+                background-color: transparent;
             }}
         """)
         
@@ -628,8 +662,12 @@ class AboutDialog(QDialog):
         if result['valid']:
             details = result.get('details', {})
             name = details.get('name', 'Unknown')
-            expiry = details.get('expiry', 'Never')
-            hwid = details.get('hwid', 'Unknown')
+            expiry = details.get('expiration_date', details.get('expiry', 'Never'))
+            
+            # Get HWID from details or fallback to local calculation
+            hwid = details.get('hwid')
+            if not hwid or hwid == 'Unknown':
+                hwid = service.get_machine_fingerprint()
             
             # Valid Status Header
             status_container = QHBoxLayout()
