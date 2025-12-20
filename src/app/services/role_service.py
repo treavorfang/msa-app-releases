@@ -78,6 +78,10 @@ class RoleService(IRoleService):
             ('inventory:view', 'View Inventory', 'inventory', 'View inventory levels'),
             ('inventory:manage', 'Manage Inventory', 'inventory', 'Add/Edit parts and stock'),
             
+            # Financial
+            ('financial:view', 'View Financial', 'financial', 'View financial transactions'),
+            ('financial:manage', 'Manage Financial', 'financial', 'Add/Edit transactions'),
+            
             # Technicians
             ('technicians:view', 'View Technicians', 'technicians', 'View technicians list'),
             ('technicians:manage', 'Manage Technicians', 'technicians', 'Add/Edit technicians'),
@@ -108,6 +112,7 @@ class RoleService(IRoleService):
                     'reports:view', 'reports:export', 'reports:financial',
                     'tickets:view', 'tickets:create', 'tickets:edit', 'tickets:assign',
                     'invoices:view', 'invoices:create', 'invoices:edit',
+                    'financial:view', 'financial:manage',
                     'customers:view', 'customers:manage',
                     'inventory:view', 'inventory:manage',
                     'technicians:view', 'technicians:manage',

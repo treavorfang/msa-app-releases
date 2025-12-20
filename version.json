@@ -1,16 +1,16 @@
 {
-  "version": "1.0.3",
-  "full_version": "1.0.3+build.483.unknown",
+  "version": "1.0.4",
+  "full_version": "1.0.4+build.652.eaff118.dirty",
   "major": 1,
   "minor": 0,
-  "patch": 3,
-  "build": 483,
+  "patch": 4,
+  "build": 652,
   "git": {
-    "commit": "unknown",
-    "branch": "unknown",
+    "commit": "eaff118",
+    "branch": "main",
     "tag": "v1.0.3",
-    "dirty": false
+    "dirty": true
   },
-  "build_date": "2025-12-19T07:43:03.236176",
-  "build_timestamp": 1766106783
+  "build_date": "2025-12-20T20:41:30.322074",
+  "build_timestamp": 1766239890
 }

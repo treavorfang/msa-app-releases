@@ -49,6 +49,12 @@ class CategoryDTO:
         return {
             'category_id': self.id,
             'name': self.name,
+            'description': self.description,
             'parent_id': self.parent_id,
-            'is_active': self.is_active
+            'default_markup_percentage': self.default_markup_percentage,
+            'is_active': self.is_active,
+            'deleted_by_id': self.deleted_by_id,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at,
+            'updated_at': self.updated_at.isoformat() if hasattr(self.updated_at, 'isoformat') else self.updated_at,
+            'deleted_at': self.deleted_at.isoformat() if hasattr(self.deleted_at, 'isoformat') else self.deleted_at
         }

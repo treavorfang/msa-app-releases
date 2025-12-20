@@ -4,13 +4,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QComboBox, QDateEdit)
 from PySide6.QtCore import Qt, QDate, Signal
 from PySide6.QtGui import QCursor
-from views.components.metric_card import MetricCard
+from views.components.new_dashboard_widgets import WaveChart, MetricCard, DashboardCard, is_dark_theme
 from datetime import datetime, timedelta
-import matplotlib
-matplotlib.use('QtAgg')  # Use Qt6-compatible backend
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+# Matplotlib removed
 from utils.language_manager import language_manager
 from utils.currency_formatter import currency_formatter
 from core.event_bus import EventBus
@@ -60,6 +56,9 @@ class ModernDashboardTab(QWidget):
         self.container = container
         self.user = user
         
+        # Flag to track if data has been loaded
+        self._data_loaded = False
+        
         # Explicit dependencies
         self.ticket_service = ticket_service
         self.ticket_controller = ticket_controller
@@ -83,13 +82,33 @@ class ModernDashboardTab(QWidget):
         
         self._setup_ui()
         self._subscribe_to_events()
+        self._connect_theme_signal()
         
-        # Flag to track if data has been loaded
-        self._data_loaded = False
-        
-        # We don't load data here anymore. 
-        # It will be loaded in showEvent calling refresh_data()
-        # self.refresh_data()
+    def _connect_theme_signal(self):
+        """Connect to theme change signal"""
+        if self.container and hasattr(self.container, 'theme_controller') and self.container.theme_controller:
+            if hasattr(self.container.theme_controller, 'theme_changed'):
+                self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+                
+                # Initial propagation
+                self._on_theme_changed(self.container.theme_controller.current_theme)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme change"""
+        # Determine strict theme mode
+        current = str(theme_name).lower().strip()
+        is_dark = (current == 'dark')
+        # print(f"DEBUG: ModernDashboardTab._on_theme_changed propagation -> theme={theme_name} -> is_dark={is_dark}")
+
+        # Propagate to all theme-aware widgets
+        for widget in self.findChildren(DashboardCard):
+            widget.set_theme_mode(is_dark)
+            
+        for chart in self.findChildren(WaveChart):
+            chart.set_theme_mode(is_dark)
+
+        # MetricCards are re-created in refresh_data(), so they handle themselves via the init arg
+        self.refresh_data()
     
     def _setup_ui(self):
         """Setup the modern dashboard UI"""
@@ -117,31 +136,43 @@ class ModernDashboardTab(QWidget):
         self.metrics_layout.setSpacing(12)
         main_layout.addLayout(self.metrics_layout)
         
-        # Chart row - Revenue chart and Status breakdown side by side
+        # Chart & Lists row
         chart_row = QHBoxLayout()
-        chart_row.setSpacing(10)  # Reduced from 12
+        chart_row.setSpacing(12)
         
-        # Left column - Revenue chart above Recent tickets
+        # Left column - Revenue, Techs
         left_column = QVBoxLayout()
         left_column.setSpacing(12)
+        
+        # 1. Revenue Chart
         chart_card = self._create_revenue_chart_card()
         left_column.addWidget(chart_card)
-        recent_tickets_card = self._create_recent_tickets_card()
-        left_column.addWidget(recent_tickets_card)
         
-        # Right column - Status breakdown above Top Technicians
+        # 2. Technician Performance
+        tech_perf_card = self._create_technician_performance_card()
+        left_column.addWidget(tech_perf_card)
+        
+        chart_row.addLayout(left_column, 7) # 70% width
+        
+        # Right column - Status, Recent Activity
         right_column = QVBoxLayout()
         right_column.setSpacing(12)
-        quick_stats_card = self._create_quick_stats_card()
-        right_column.addWidget(quick_stats_card)
-        tech_perf_card = self._create_technician_performance_card()
-        right_column.addWidget(tech_perf_card)
         
-        # Add both columns to the row
-        chart_row.addLayout(left_column, 1)
-        chart_row.addLayout(right_column, 1)
+        # 1. Status Breakdown
+        self.quick_stats_card = self._create_quick_stats_card()
+        right_column.addWidget(self.quick_stats_card)
+        
+        # 2. Recent tickets
+        recent_tickets_card = self._create_recent_tickets_card()
+        right_column.addWidget(recent_tickets_card)
+        
+        chart_row.addLayout(right_column, 3) # 30% width
         
         main_layout.addLayout(chart_row)
+        
+        # We need to remove the old creation calls from further down if they exist or just ensure _setup_ui matches this flow
+        # In the original file, create_quick_stats_card etc were called later. I need to make sure I don't double add or leave orphans.
+        # The previous code had chart_row with left/right columns. I've restructured it.
         
         main_layout.addStretch()
         
@@ -232,31 +263,34 @@ class ModernDashboardTab(QWidget):
     
     def _create_revenue_chart_card(self):
         """Create revenue chart card"""
-        card = QFrame()
-        card.setObjectName("chartCard")
-        card.setMinimumHeight(200)  # Increased from 160
-        card.setMaximumHeight(200)  # Fixed height
+        card = DashboardCard()
+        # card.setMinimumHeight(400) # Let the chart decide height
+        # dashboard card handles style dynamically
         
         layout = QVBoxLayout(card)
-        layout.setSpacing(4)  # Reduced from 12
+        layout.setSpacing(5) # Reduced from 20
+        layout.setContentsMargins(20, 15, 20, 10) # Reduced from 25s
         
-        # Card title
+        # Card header row
+        header = QHBoxLayout()
         title = QLabel(self.lm.get("Dashboard.revenue_overview", "Revenue Trend"))
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        layout.addWidget(title)
+        title.setStyleSheet("font-size: 16px; font-weight: bold; border: none; background: transparent;") # Reduced font slightly
+        header.addWidget(title)
+        header.addStretch()
         
-        # Chart canvas
-        self.revenue_figure = Figure(figsize=(10, 2), facecolor='none')  # Reduced height from 3 to 2
-        self.revenue_canvas = FigureCanvas(self.revenue_figure)
-        self.revenue_canvas.setStyleSheet("background-color: transparent;")
-        layout.addWidget(self.revenue_canvas)
+        layout.addLayout(header)
+        
+        # Wave Chart
+        self.wave_chart = WaveChart()
+        self.wave_chart.setMinimumHeight(300)
+        self.wave_chart.set_formatter(lambda x: self.cf.format(x))
+        layout.addWidget(self.wave_chart)
         
         return card
     
     def _create_recent_tickets_card(self):
         """Create recent tickets list card"""
-        card = QFrame()
-        card.setObjectName("chartCard")
+        card = DashboardCard() # Use generic theme aware card
         
         layout = QVBoxLayout(card)
         layout.setSpacing(12)
@@ -287,33 +321,35 @@ class ModernDashboardTab(QWidget):
         return card
     
     def _create_quick_stats_card(self):
-        """Create quick stats card"""
-        card = QFrame()
-        card.setObjectName("chartCard")
-        card.setMinimumHeight(200)  # Increased from 160
-        card.setMaximumHeight(200)
+        """Create quick stats card (Vertical List)"""
+        card = DashboardCard()
+        # card.setMinimumHeight(100)
+        # card.setMaximumHeight(60) # Removed fixed height constraint
+        # style handled by class
         
         layout = QVBoxLayout(card)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
         
-        # Card title
+        # Title
         title = QLabel(self.lm.get("Dashboard.status_breakdown", "Status Breakdown"))
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; border: none; background: transparent;")
         layout.addWidget(title)
         
-        # Stats container
+        # Stats container - Vertical
         self.stats_layout = QVBoxLayout()
-        self.stats_layout.setSpacing(12)
+        self.stats_layout.setSpacing(0)
         layout.addLayout(self.stats_layout)
         
-        layout.addStretch()
+        # Remove stretch if we want it compact at top
+        # layout.addStretch() 
         
         return card
     
     def _create_technician_performance_card(self):
         """Create technician performance card"""
-        card = QFrame()
-        card.setObjectName("chartCard")
+        card = DashboardCard()
+        # card.setObjectName("chartCard") # Handled by DashboardCard
         
         layout = QVBoxLayout(card)
         layout.setSpacing(12)
@@ -377,17 +413,26 @@ class ModernDashboardTab(QWidget):
     
     def refresh_data(self):
         """Refresh dashboard data"""
-        # Get stats
-        stats = self.ticket_service.get_dashboard_stats_range(self.start_date, self.end_date, self.current_branch_id)
-        avg_time = self.ticket_service.get_average_completion_time(self.start_date, self.end_date, self.current_branch_id)
-        
-        # Update all sections
-        self._update_metric_cards(stats, avg_time)
-        self._update_revenue_chart(self.start_date, self.end_date)
-        self._update_recent_tickets()
-        self._update_quick_stats(stats)
-        self._update_technician_performance(self.start_date, self.end_date)
-    
+        try:
+            # Get stats
+            stats = self.ticket_service.get_dashboard_stats_range(self.start_date, self.end_date, self.current_branch_id)
+            avg_time = self.ticket_service.get_average_completion_time(self.start_date, self.end_date, self.current_branch_id)
+            
+            # Update all sections
+            self._update_metric_cards(stats, avg_time)
+            self._update_revenue_chart(self.start_date, self.end_date)
+            try:
+                self._update_recent_tickets()
+            except Exception as e:
+                print(f"Error updating recent tickets: {e}")
+                
+            self._update_quick_stats(stats)
+            self._update_technician_performance(self.start_date, self.end_date)
+        except Exception as e:
+            print(f"Error refreshing dashboard data: {e}")
+            import traceback
+            traceback.print_exc()
+
     def _update_metric_cards(self, stats, avg_time):
         """Update the top metric cards"""
         # Clear existing cards
@@ -461,44 +506,32 @@ class ModernDashboardTab(QWidget):
         completion_growth = calculate_growth(current_completion_rate, prev_completion_rate)
         
         # Create metric cards with different colors and real growth data
+        # Title, Value, Subtext, Color, ShowDonut, DonutValue
         cards_data = [
-            ("🎫", str(total_tickets), self.lm.get("Dashboard.active_tickets", "Total Tickets"), tickets_growth, "#3B82F6"),  # Blue
-            ("💰", self.cf.format(current_revenue), self.lm.get("Dashboard.total_revenue", "Revenue"), revenue_growth, "#10B981"),  # Green
-            ("⏳", str(current_pending), self.lm.get("Dashboard.pending_invoices", "Pending"), pending_growth, "#F59E0B"),  # Orange
-            ("✅", f"{current_completion_rate}%", self.lm.get("Reports.completion_rate", "Completion Rate"), completion_growth, "#8B5CF6"),  # Purple
+            (self.lm.get("Dashboard.active_tickets", "Total Tickets"), str(total_tickets), tickets_growth, "#1F2937", True, 0.75),
+            (self.lm.get("Dashboard.total_revenue", "Revenue"), self.cf.format(current_revenue), revenue_growth, "#1F2937", True, 0.60),
+            (self.lm.get("Dashboard.pending_invoices", "Pending"), str(current_pending), pending_growth, "#1F2937", False, 0.0),
+            (self.lm.get("Reports.completion_rate", "Completion Rate"), f"{current_completion_rate}%", completion_growth, "#1F2937", True, current_completion_rate / 100.0 if current_completion_rate else 0.0),
         ]
         
-        for icon, value, label, growth, color in cards_data:
-            card = MetricCard(icon, value, label, growth, color)
+        # Determine theme mode
+        is_dark = True
+        if self.container and hasattr(self.container, 'theme_controller') and self.container.theme_controller:
+            current = str(self.container.theme_controller.current_theme).lower().strip()
+            is_dark = (current == 'dark')
+            print(f"DEBUG: ModernDashboardTab detected theme from controller: '{self.container.theme_controller.current_theme}' -> cleaned='{current}' -> is_dark={is_dark}")
+        else:
+            is_dark = is_dark_theme(self)
+            print(f"DEBUG: ModernDashboardTab detected theme from utils -> is_dark={is_dark}")
+
+        for title, value, subtext, color, show_donut, donut_val in cards_data:
+            card = MetricCard(title, value, subtext, color, show_donut, donut_val, is_dark_mode=is_dark)
             self.metrics_layout.addWidget(card)
     
     def _update_revenue_chart(self, start_date, end_date):
         """Update revenue trend chart"""
-        # Clear and setup chart
-        self.revenue_figure.clear()
-        ax = self.revenue_figure.add_subplot(111)
-        
-        # Make background transparent
-        self.revenue_figure.patch.set_alpha(0)
-        ax.patch.set_alpha(0)
-        
-        # Get theme-aware colors
-        from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QPalette
-        palette = QApplication.palette()
-        is_dark = palette.color(QPalette.ColorRole.Window).lightness() < 128
-        
-        text_color = '#9CA3AF' if is_dark else '#6B7280'
-        grid_color = '#374151' if is_dark else '#E5E7EB'
-        bg_color = '#1F2937' if is_dark else '#F9FAFB'
-        
         # Get revenue trend data
         trend_data = self.ticket_service.get_revenue_trend(start_date, end_date, self.current_branch_id)
-        
-        # Debug: Print revenue trend data
-        print(f"DEBUG Revenue Trend: start={start_date}, end={end_date}, branch={self.current_branch_id}")
-        print(f"DEBUG Revenue Trend Data: {trend_data}")
-        print(f"DEBUG Revenue Trend Count: {len(trend_data)} days")
         
         # Convert to dictionary for easy lookup
         trend_map = {item['date']: item['revenue'] for item in trend_data}
@@ -509,26 +542,27 @@ class ModernDashboardTab(QWidget):
         # Calculate number of days
         delta = (end_date - start_date).days
         
-        # Determine grouping strategy
+        # Determine grouping strategy (same as before)
         if delta <= 7:
             # Daily view
             date_format = "%a"  # Mon, Tue
-            
             for i in range(delta + 1):
                 day = start_date + timedelta(days=i)
                 day_str = day.strftime("%Y-%m-%d")
                 
                 days.append(day.strftime(date_format))
-                revenues.append(trend_map.get(day_str, 0.0))
+                revenues.append(float(trend_map.get(day_str, 0.0)))
         else:
-            # Weekly grouping
+            # Weekly grouping or coarse daily if < 30 etc.
+            # For simplicity, stick to Daily if < 14, else Weekly
+             # Weekly grouping
             weekly_data = {}
             week_order = []
             
             for i in range(delta + 1):
                 day = start_date + timedelta(days=i)
                 day_str = day.strftime("%Y-%m-%d")
-                revenue = trend_map.get(day_str, 0.0)
+                revenue = float(trend_map.get(day_str, 0.0))
                 
                 # Get week start date (Monday)
                 week_start = day - timedelta(days=day.weekday())
@@ -542,45 +576,9 @@ class ModernDashboardTab(QWidget):
             
             days = week_order
             revenues = [weekly_data[lbl] for lbl in days]
-        
-        # Plot line chart with red color like the screenshot
-        x_indices = range(len(days))
-        
-        if revenues:
-            ax.plot(x_indices, revenues, color='#EF4444', linewidth=2.5, marker='o', 
-                   markersize=4, markerfacecolor='#EF4444', markeredgecolor='#EF4444')
             
-            # Add average line (dotted)
-            avg_revenue = sum(revenues) / len(revenues) if revenues else 0
-            ax.axhline(y=avg_revenue, color='#EF4444', linestyle='--', 
-                      linewidth=1, alpha=0.5)
-        
-        # Styling - match screenshot
-        ax.set_facecolor(bg_color)
-        ax.set_ylim(bottom=0)
-        
-        # Remove top and right spines
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color(grid_color)
-        ax.spines['bottom'].set_color(grid_color)
-        
-        # Grid styling - match screenshot with dashed lines
-        ax.grid(True, alpha=0.3, color=grid_color, linestyle='--', linewidth=0.8)
-        ax.set_axisbelow(True)  # Grid behind data
-        
-        # Set x-axis ticks
-        ax.set_xticks(x_indices)
-        ax.set_xticklabels(days)
-        
-        # Tick styling
-        ax.tick_params(colors=text_color, labelsize=9)
-        
-        # Format y-axis as currency
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: self.cf.format(x)))
-        
-        self.revenue_figure.tight_layout()
-        self.revenue_canvas.draw()
+        # Update Wave Chart
+        self.wave_chart.set_data(revenues, days)
     
     def _update_recent_tickets(self):
         """Update recent tickets list"""
@@ -698,9 +696,10 @@ class ModernDashboardTab(QWidget):
                 parent=self
             )
             dialog.exec()
-    
+
+
     def _update_quick_stats(self, stats):
-        """Update quick stats"""
+        """Update quick stats (Vertical List)"""
         # Clear existing
         while self.stats_layout.count():
             item = self.stats_layout.takeAt(0)
@@ -708,32 +707,50 @@ class ModernDashboardTab(QWidget):
             if widget:
                 widget.deleteLater()
         
-        # Status breakdown
-        statuses = [
-            (self.lm.get("Tickets.new_ticket", "New"), stats.get('new_jobs', 0), "#3B82F6"),
-            (self.lm.get("Common.in_progress", "In Progress"), stats.get('in_progress', 0), "#F59E0B"),
-            (self.lm.get("Common.completed", "Completed"), stats.get('completed', 0), "#10B981"),
-        ]
-        
-        for status_name, count, color in statuses:
-            # Create a container widget for each status item
-            stat_widget = QWidget()
-            stat_widget.setStyleSheet("background-color: transparent;")  # Transparent background
-            stat_layout = QHBoxLayout(stat_widget)
-            stat_layout.setContentsMargins(0, 6, 0, 6)
-            stat_layout.setSpacing(0)
+        try:
+            # Status breakdown
+            statuses = [
+                (self.lm.get("Tickets.new_ticket", "New"), stats.get('new_jobs', 0), "#3B82F6"),
+                (self.lm.get("Common.in_progress", "In Progress"), stats.get('in_progress', 0), "#F59E0B"),
+                (self.lm.get("Common.completed", "Completed"), stats.get('completed', 0), "#10B981"),
+            ]
             
-            label = QLabel(status_name)
-            label.setObjectName("metricLabel")
-            stat_layout.addWidget(label)
-            
-            stat_layout.addStretch()
-            
-            value = QLabel(str(count))
-            value.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {color};")
-            stat_layout.addWidget(value)
-            
-            self.stats_layout.addWidget(stat_widget)
+            for status_name, count, color in statuses:
+                # Create a compact container for each status item
+                stat_widget = QWidget()
+                stat_widget.setMinimumHeight(30) # Ensure visibility
+                stat_widget.setStyleSheet("background-color: transparent;")
+                
+                # Use QHBoxLayout: Label -> Stretch -> Value
+                stat_layout = QHBoxLayout(stat_widget)
+                stat_layout.setContentsMargins(10, 5, 10, 5)
+                stat_layout.setSpacing(10)
+                
+                # Ensure status_name is string
+                status_str = str(status_name) if status_name else "Status"
+                
+                label = QLabel(status_str)
+                label.setObjectName("metricLabel")
+                label.setStyleSheet("font-size: 13px; color: #9CA3AF; border: none; font-weight: 500;")
+                stat_layout.addWidget(label)
+                
+                stat_layout.addStretch()
+                
+                value = QLabel(str(count))
+                value.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {color}; border: none;")
+                stat_layout.addWidget(value)
+                
+                self.stats_layout.addWidget(stat_widget)
+                
+                # Add separator lines
+                if status_name != statuses[-1][0]:
+                    line = QFrame()
+                    line.setFrameShape(QFrame.HLine)
+                    line.setFrameShadow(QFrame.Sunken)
+                    line.setStyleSheet("background-color: #374151; border: none; max-height: 1px;")
+                    self.stats_layout.addWidget(line)
+        except Exception as e:
+            print(f"Error updating quick stats: {e}")
     
     def _update_technician_performance(self, start_date, end_date):
         """Update technician performance"""

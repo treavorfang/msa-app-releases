@@ -1,14 +1,16 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QMessageBox
 from PySide6.QtCore import Qt
 from views.auth.login import LoginView
+from utils.language_manager import language_manager
 
 class LocalLoginDialog(QDialog):
     def __init__(self, auth_service, parent=None):
         super().__init__(parent)
         self.auth_service = auth_service
         self.user = None
+        self.lm = language_manager
         
-        self.setWindowTitle("Staff Login")
+        self.setWindowTitle(self.lm.get("Auth.staff_login_title", "Staff Login"))
         self.setFixedSize(420, 680)
         self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
         
@@ -25,8 +27,8 @@ class LocalLoginDialog(QDialog):
         
         # Hide registration for local staff login
         self.login_view.set_register_visible(False)
-        self.login_view.username_label.setText("Username")
-        self.login_view.username_input.setPlaceholderText("Enter Username")
+        self.login_view.username_label.setText(self.lm.get("Auth.username_label", "Username"))
+        self.login_view.username_input.setPlaceholderText(self.lm.get("Auth.username_placeholder", "Enter Username"))
         
         # Connect signals
         self.login_view.login_attempt.connect(self.handle_login)
@@ -39,7 +41,7 @@ class LocalLoginDialog(QDialog):
     def handle_login(self, username, password, remember_me):
         # Disable button during processing
         self.login_view.login_btn.setEnabled(False)
-        self.login_view.login_btn.setText("Authenticating...")
+        self.login_view.login_btn.setText(self.lm.get("Auth.authenticating", "Authenticating..."))
         self.login_view.repaint()
         
         try:
@@ -69,12 +71,16 @@ class LocalLoginDialog(QDialog):
                     settings.remove(f"{prefix}/remember_username")
                 self.accept()
             else:
-                QMessageBox.warning(self, "Login Failed", str(result))
+                QMessageBox.warning(self, self.lm.get("Auth.login_failed_title", "Login Failed"), str(result))
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An unexpected error occurred: {str(e)}")
+            QMessageBox.critical(self, self.lm.get("Common.error", "Error"), f"{self.lm.get('Common.unexpected_error', 'An unexpected error occurred')}: {str(e)}")
         finally:
             self.login_view.login_btn.setEnabled(True)
-            self.login_view.login_btn.setText("Sign In")
+            self.login_view.login_btn.setText(self.lm.get("Auth.login_button", "Sign In"))
 
     def handle_forgot_password(self):
-        QMessageBox.information(self, "Forgot Password", "Please contact your system administrator to reset your password.")
+        QMessageBox.information(
+            self, 
+            self.lm.get("Auth.forgot_password_title", "Forgot Password"), 
+            self.lm.get("Auth.contact_admin_reset", "Please contact your system administrator to reset your password.")
+        )

@@ -57,5 +57,11 @@ class UserDTO:
         return {
             'user_id': self.id,
             'username': self.username,
-            'role': self.role_name
+            'full_name': self.full_name,
+            'email': self.email,
+            'is_active': self.is_active,
+            'branch_id': self.branch_id,
+            'role_id': self.role_id,
+            'last_login': self.last_login.isoformat() if hasattr(self.last_login, 'isoformat') else self.last_login,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at
         }

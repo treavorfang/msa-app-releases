@@ -61,7 +61,14 @@ class CustomerDTO:
             'phone': self.phone,
             'email': self.email,
             'address': self.address,
-            'preferred_contact_method': self.preferred_contact_method
+            'notes': self.notes,
+            'preferred_contact_method': self.preferred_contact_method,
+            'branch_id': self.branch_id,
+            'created_by': self.created_by,
+            'updated_by': self.updated_by,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at,
+            'updated_at': self.updated_at.isoformat() if hasattr(self.updated_at, 'isoformat') else self.updated_at,
+            'deleted_at': self.deleted_at.isoformat() if hasattr(self.deleted_at, 'isoformat') else self.deleted_at
         }
     
     def to_ui_dict(self) -> dict:

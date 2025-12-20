@@ -61,6 +61,13 @@ class StatusDistributionChart(QWidget):
         # Connect click event
         self.canvas.mpl_connect('button_press_event', self._on_click)
         self.canvas.mpl_connect('motion_notify_event', self._on_hover)
+    
+    def wheelEvent(self, event):
+        """Pass wheel events to parent to enable scrolling over chart"""
+        if self.parent():
+            self.parent().wheelEvent(event)
+        else:
+            super().wheelEvent(event)
         
     def update_chart(self, distribution: Dict[str, int]):
         """Update the donut chart with new data"""
@@ -230,6 +237,13 @@ class RevenueTrendChart(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.canvas)
+    
+    def wheelEvent(self, event):
+        """Pass wheel events to parent to enable scrolling over chart"""
+        if self.parent():
+            self.parent().wheelEvent(event)
+        else:
+            super().wheelEvent(event)
     
     def update_chart(self, trend_data: List[Dict]):
         """Update the chart with new data

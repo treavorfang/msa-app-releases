@@ -15,17 +15,19 @@ from PySide6.QtWidgets import (
     QGridLayout, QStackedWidget, QMenu, QDialog, QFormLayout,
     QDialogButtonBox, QDateEdit, QSpinBox, QGroupBox, QButtonGroup,
     QRadioButton, QSizePolicy, QTableWidget, QTableWidgetItem, QHeaderView,
-    QMessageBox
+    QMessageBox, QFileDialog
 )
 from PySide6.QtCore import Qt, Signal, QTimer, QDate, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QColor, QCursor, QIcon
 from typing import List, Dict
+import csv
 from datetime import datetime, timedelta
 from dtos.ticket_dto import TicketDTO
 from utils.validation.message_handler import MessageHandler
 from utils.print.ticket_generator import TicketReceiptGenerator
 from views.tickets.ticket_details_dialog import TicketDetailsDialog
 from views.components.metric_card import MetricCard
+from views.components.new_dashboard_widgets import is_dark_theme
 from views.tickets.ticket_base import TicketBaseWidget
 from views.tickets.kanban_view import KanbanView
 from views.components.loading_overlay import LoadingOverlay
@@ -448,9 +450,10 @@ class ModernTicketsTab(TicketBaseWidget):
     def _create_header(self):
         """Create header with title and view switcher"""
         layout = QHBoxLayout()
+        # We don't parent yet, but ensure it's returned and used immediately
         
         # Title
-        title = QLabel(self.lm.get("Tickets.tickets_title", "Tickets"))
+        title = QLabel(self.lm.get("Tickets.tickets_title", "Tickets"), self)
         title.setStyleSheet("font-size: 24px; font-weight: bold;")
         layout.addWidget(title)
         
@@ -505,6 +508,7 @@ class ModernTicketsTab(TicketBaseWidget):
         
         # Title with collapse button
         header = QHBoxLayout()
+        layout.addLayout(header)
         title = QLabel(self.lm.get("Tickets.overview", "Overview"))
         title.setStyleSheet("font-size: 14px; font-weight: bold;")
         header.addWidget(title)
@@ -519,14 +523,16 @@ class ModernTicketsTab(TicketBaseWidget):
                 font-size: 10px;
             }
         """)
-        header.addWidget(self.collapse_stats_btn)
-        header.addStretch()
-        layout.addLayout(header)
+        
+        
         
         # Metrics row (collapsible)
         self.metrics_widget = QWidget()
         metrics_container = QVBoxLayout(self.metrics_widget)
         metrics_container.setContentsMargins(0, 0, 0, 0)
+        
+        # Connect collapse button (Placed after widget creation to avoid AttributeError)
+        self.collapse_stats_btn.toggled.connect(self.metrics_widget.setHidden)
         
         # Use QHBoxLayout for single row
         self.metrics_layout = QHBoxLayout()
@@ -550,16 +556,18 @@ class ModernTicketsTab(TicketBaseWidget):
             self.metrics_layout.addWidget(card)
         
         metrics_container.addLayout(self.metrics_layout)
+        
         layout.addWidget(self.metrics_widget)
         
         return container
     
     def _create_advanced_filters(self):
         """Create advanced filter controls"""
-        layout = QVBoxLayout()
+        main_filter_layout = QVBoxLayout()
         
         # First row - Search and basic filters
         row1 = QHBoxLayout()
+        main_filter_layout.addLayout(row1)
         
         # Search
         self.search_input = QLineEdit()
@@ -611,8 +619,6 @@ class ModernTicketsTab(TicketBaseWidget):
         self.advanced_filter_btn.setCheckable(True)
         row1.addWidget(self.advanced_filter_btn)
         
-        layout.addLayout(row1)
-        
         # Second row - Advanced filters (initially hidden)
         self.advanced_filters_widget = QWidget()
         row2 = QHBoxLayout(self.advanced_filters_widget)
@@ -652,9 +658,9 @@ class ModernTicketsTab(TicketBaseWidget):
         row2.addWidget(clear_btn)
         
         self.advanced_filters_widget.setVisible(False)
-        layout.addWidget(self.advanced_filters_widget)
+        main_filter_layout.addWidget(self.advanced_filters_widget)
         
-        return layout
+        return main_filter_layout
     
     def _update_bulk_buttons_state(self, *args):
         """Enable bulk action buttons when any row is checked or card selected"""
@@ -731,9 +737,18 @@ class ModernTicketsTab(TicketBaseWidget):
         layout.addWidget(refresh_btn)
         
         # Export button
-        export_btn = QPushButton(f"📥 {self.lm.get('Common.export', 'Export')}")
-        export_btn.clicked.connect(self._export_tickets)
-        layout.addWidget(export_btn)
+        # Export button with menu
+        self.export_btn = QPushButton(f"📥 {self.lm.get('Common.export', 'Export')}")
+        self.export_menu = QMenu(self.export_btn)
+        
+        csv_action = self.export_menu.addAction(f"📄 {self.lm.get('Tickets.save_csv', 'Export CSV')}")
+        csv_action.triggered.connect(self._export_tickets_csv)
+        
+        pdf_action = self.export_menu.addAction(f"📑 {self.lm.get('Tickets.export_pdf', 'Export PDF')}")
+        pdf_action.triggered.connect(self._export_tickets_pdf)
+        
+        self.export_btn.setMenu(self.export_menu)
+        layout.addWidget(self.export_btn)
         
         return layout
     
@@ -841,6 +856,20 @@ class ModernTicketsTab(TicketBaseWidget):
             self.ticket_controller.ticket_restored.connect(self._on_ticket_changed)
             self.ticket_controller.status_changed.connect(self._on_ticket_changed)
             self.ticket_controller.technician_assigned.connect(self._on_ticket_changed)
+            
+        self._connect_theme_signal()
+
+    def _connect_theme_signal(self):
+        """Connect to theme change signal"""
+        if self.container and hasattr(self.container, 'theme_controller') and self.container.theme_controller:
+            # Check if signal exists (requires update to ThemeController)
+            if hasattr(self.container.theme_controller, 'theme_changed'):
+                self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme change"""
+        # Reload current view to refresh styles
+        self._load_tickets()
     
     def _switch_view(self, view_mode):
         """Switch between different view modes"""
@@ -1039,10 +1068,18 @@ class ModernTicketsTab(TicketBaseWidget):
     def _populate_cards_view(self, tickets: List[TicketDTO]):
         """Populate cards view"""
         # Clear existing cards
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        if self.cards_layout:
+            while self.cards_layout.count():
+                item = self.cards_layout.takeAt(0)
+                if item:
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater()
+                    else:
+                        layout = item.layout()
+                        if layout:
+                            # Recursively clear sub-layouts
+                            self._clear_layout(layout)
         
         # Add ticket cards
         for idx, ticket in enumerate(tickets):
@@ -1095,6 +1132,7 @@ class ModernTicketsTab(TicketBaseWidget):
         
         # Header row - Ticket number and priority
         header = QHBoxLayout()
+        layout.addLayout(header)
         
         ticket_num = QLabel(ticket.ticket_number)
         ticket_num.setStyleSheet("font-weight: bold; font-size: 14px;")
@@ -1116,8 +1154,6 @@ class ModernTicketsTab(TicketBaseWidget):
             font-weight: bold;
         """)
         header.addWidget(priority_badge)
-        
-        layout.addLayout(header)
         
         # Customer name
         customer = QLabel(ticket.customer.name if ticket.customer else self.lm.get("Tickets.no_customer", "No Customer"))
@@ -1259,38 +1295,56 @@ class ModernTicketsTab(TicketBaseWidget):
         obj_name = card.objectName()
         
         if is_selected:
+            dark_mode = is_dark_theme(self)
+            sel_bg = "#374151" if dark_mode else "#EFF6FF"
+            
             card.setStyleSheet(f"""
                 QFrame#{obj_name} {{
-                    background-color: #374151;
+                    background-color: {sel_bg};
                     border: 2px solid #3B82F6;
                     border-radius: 8px;
                 }}
             """)
         else:
+            dark_mode = is_dark_theme(self)
+            bg_color = "#1F2937" if dark_mode else "#FFFFFF"
+            border_color = "#374151" if dark_mode else "#E5E7EB"
+            
             if obj_name == "ticketCard":
-                card.setStyleSheet("""
-                    QFrame#ticketCard {
-                        background-color: #1F2937;
-                        border: 1px solid #374151;
+                card.setStyleSheet(f"""
+                    QFrame#ticketCard {{
+                        background-color: {bg_color};
+                        border: 1px solid {border_color};
                         border-radius: 8px;
-                    }
-                    QFrame#ticketCard:hover {
+                    }}
+                    QFrame#ticketCard:hover {{
                         border-color: #3B82F6;
-                        background-color: #374151;
-                    }
+                        background-color: {bg_color};
+                    }}
                 """)
             elif obj_name == "kanbanCard":
-                card.setStyleSheet("""
-                    QFrame#kanbanCard {
-                        background-color: #374151;
-                        border: 1px solid #4B5563;
+                card.setStyleSheet(f"""
+                    QFrame#kanbanCard {{
+                        background-color: {bg_color};
+                        border: 1px solid {border_color};
                         border-radius: 6px;
-                    }
-                    QFrame#kanbanCard:hover {
+                    }}
+                    QFrame#kanbanCard:hover {{
                         border-color: #3B82F6;
-                        background-color: #4B5563;
-                    }
+                        background-color: {bg_color};
+                    }}
                 """)
+
+    def _clear_layout(self, layout):
+        """Helper to recursively clear a layout and its widgets"""
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self._clear_layout(item.layout())
 
     def _on_background_clicked(self, event):
         """Handle click on background to deselect all"""
@@ -1404,13 +1458,265 @@ class ModernTicketsTab(TicketBaseWidget):
             )
             self._load_tickets()
     
-    def _export_tickets(self):
+    def _export_tickets_csv(self):
         """Export tickets to CSV"""
-        MessageHandler.show_info(self, 
-            self.lm.get("Common.coming_soon", "Coming Soon"), 
-            self.lm.get("Tickets.export_feature_coming", "Export feature coming soon!")
+        if not self._current_ticket_list:
+            MessageHandler.show_info(self, self.lm.get("Common.info", "Info"), self.lm.get("Tickets.no_tickets_to_export", "No tickets to export"))
+            return
+            
+        path, _ = QFileDialog.getSaveFileName(
+            self, 
+            self.lm.get("Tickets.save_csv", "Save CSV"), 
+            f"tickets_{datetime.now().strftime('%Y%m%d')}.csv", 
+            "CSV Files (*.csv)"
         )
+        
+        if not path:
+            return
+            
+        try:
+            with open(path, 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                # Write Headers
+                writer.writerow([
+                    self.lm.get("Tickets.ticket_num", "Ticket #"),
+                    self.lm.get("Tickets.customer", "Customer"),
+                    self.lm.get("Tickets.device", "Device"),
+                    self.lm.get("Tickets.issue", "Issue"),
+                    self.lm.get("Tickets.status", "Status"),
+                    self.lm.get("Tickets.priority", "Priority"),
+                    self.lm.get("Tickets.technician", "Technician"),
+                    self.lm.get("Tickets.created", "Created"),
+                    self.lm.get("Tickets.deadline", "Due Date"),
+                    self.lm.get("Tickets.estimated_cost", "Est. Cost"),
+                    self.lm.get("Tickets.paid", "Paid"),
+                    self.lm.get("Tickets.balance", "Balance"),
+                    self.lm.get("Tickets.internal_notes", "Internal Notes")
+                ])
+                
+                # Write Data
+                for ticket in self._current_ticket_list:
+                    # formatted data
+                    customer_name = ticket.customer.name if ticket.customer else "N/A"
+                    device_name = f"{ticket.device.brand} {ticket.device.model}" if ticket.device else "N/A"
+                    technician_name = ticket.technician_name or "Unassigned"
+                    created_str = ticket.created_at.strftime("%Y-%m-%d %H:%M") if ticket.created_at else ""
+                    due_str = ticket.deadline.strftime("%Y-%m-%d") if ticket.deadline else ""
+                    
+                    est_cost = ticket.estimated_cost or 0.0
+                    paid = ticket.deposit_paid or 0.0
+                    balance = est_cost - paid
+                    
+                    writer.writerow([
+                        ticket.ticket_number,
+                        customer_name,
+                        device_name,
+                        ticket.error or "",
+                        ticket.status,
+                        ticket.priority,
+                        technician_name,
+                        created_str,
+                        due_str,
+                        f"{est_cost:.2f}",
+                        f"{paid:.2f}",
+                        f"{balance:.2f}",
+                        ticket.internal_notes or ""
+                    ])
+            
+            MessageHandler.show_success(
+                self, 
+                self.lm.get("Common.success", "Success"), 
+                f"{self.lm.get('Tickets.export_success', 'Successfully exported')} {len(self._current_ticket_list)} {self.lm.get('Tickets.tickets', 'tickets')}."
+            )
+            
+        except Exception as e:
+            MessageHandler.show_error(
+                self, 
+                self.lm.get("Common.error", "Error"), 
+                f"{self.lm.get('Tickets.export_failed', 'Failed to export tickets')}: {str(e)}"
+            )
     
+    def _export_tickets_pdf(self):
+        """Export tickets to PDF report using WeasyPrint"""
+        if not self._current_ticket_list:
+            MessageHandler.show_info(self, self.lm.get("Common.info", "Info"), self.lm.get("Tickets.no_tickets_to_export", "No tickets to export"))
+            return
+            
+        path, _ = QFileDialog.getSaveFileName(
+            self, 
+            self.lm.get("Tickets.export_pdf", "Save PDF"), 
+            f"tickets_report_{datetime.now().strftime('%Y%m%d')}.pdf", 
+            "PDF Files (*.pdf)"
+        )
+        
+        if not path:
+            return
+            
+        try:
+            # Import WeasyPrint (lazy import)
+            import platform
+            import os
+            
+            # MacOS Fix for WeasyPrint
+            if platform.system() == 'Darwin':
+                os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = '/opt/homebrew/lib:/usr/local/lib:/usr/lib:' + os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
+            
+            from weasyprint import HTML, CSS
+            
+            # Use fonts that support Burmese
+            font_family = "'Myanmar Text', 'Myanmar MN', 'Noto Sans Myanmar', 'Pyidaungsu', sans-serif"
+            
+            html = f"""
+            <html>
+            <head>
+                <style>
+                    @page {{ size: A4 landscape; margin: 15mm; }}
+                    body {{ font-family: {font_family}; }}
+                    h1 {{ color: #2980B9; margin-bottom: 5px; }}
+                    .meta {{ font-size: 10pt; color: #7F8C8D; margin-bottom: 20px; }}
+                    
+                    /* Summary Boxes */
+                    .summary-container {{ display: flex; gap: 20px; margin-bottom: 20px; }}
+                    .summary-box {{ 
+                        border: 1px solid #BDC3C7; 
+                        padding: 10px; 
+                        width: 200px;
+                        background-color: #ECF0F1;
+                        border-radius: 4px;
+                    }}
+                    .summary-label {{ font-size: 9pt; color: #7F8C8D; }}
+                    .summary-value {{ font-size: 11pt; font-weight: bold; color: #2C3E50; }}
+                    
+                    /* Table */
+                    table {{ width: 100%; border-collapse: collapse; font-size: 9pt; }}
+                    th {{ 
+                        background-color: #3498DB; 
+                        color: white; 
+                        padding: 8px; 
+                        text-align: left; 
+                        border: 1px solid #2980B9;
+                    }}
+                    td {{ 
+                        padding: 6px; 
+                        border: 1px solid #BDC3C7; 
+                        color: #2C3E50;
+                    }}
+                    tr:nth-child(even) {{ background-color: #F8F9F9; }}
+                    
+                    /* Status Colors */
+                    .status-open {{ color: #2980B9; }}
+                    .status-completed {{ color: #27AE60; font-weight: bold; }}
+                    .status-cancelled {{ color: #C0392B; }}
+                    .status-in_progress {{ color: #E67E22; }}
+                </style>
+            </head>
+            <body>
+                <h1>{self.lm.get("Tickets.report_title", "TICKETS REPORT")}</h1>
+                <div class="meta">{self.lm.get("Tickets.generated", "Generated")}: {datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
+            """
+            
+            # Calculate Summary
+            total_est = 0.0
+            total_paid = 0.0
+            open_count = 0
+            completed_count = 0
+            
+            rows_html = ""
+            
+            for ticket in self._current_ticket_list:
+                est = ticket.estimated_cost or 0.0
+                paid = ticket.deposit_paid or 0.0
+                total_est += est
+                total_paid += paid
+                
+                if ticket.status == 'completed':
+                    completed_count += 1
+                elif ticket.status not in ['cancelled', 'unrepairable']:
+                    open_count += 1
+                    
+                customer_name = ticket.customer.name if ticket.customer else "N/A"
+                device_name = f"{ticket.device.brand} {ticket.device.model}" if ticket.device else "N/A"
+                technician_name = ticket.technician_name or "Unassigned"
+                created_str = ticket.created_at.strftime("%Y-%m-%d") if ticket.created_at else ""
+                
+                rows_html += f"""
+                <tr>
+                    <td>{ticket.ticket_number}</td>
+                    <td>{customer_name}</td>
+                    <td>{device_name}</td>
+                    <td><span class="status-{ticket.status}">{ticket.status.replace('_', ' ').title()}</span></td>
+                    <td>{technician_name}</td>
+                    <td>{created_str}</td>
+                    <td>{est:,.0f}</td>
+                    <td>{paid:,.0f}</td>
+                </tr>
+                """
+            
+            # Add Summary Section
+            html += f"""
+                <div class="summary-container">
+                    <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Tickets.total_tickets", "Total Tickets")}</div>
+                        <div class="summary-value">{len(self._current_ticket_list)}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Tickets.open_tickets", "Open Tickets")}</div>
+                        <div class="summary-value">{open_count}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Tickets.completed_tickets", "Completed Tickets")}</div>
+                        <div class="summary-value">{completed_count}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Tickets.total_estimated", "Total Estimated")}</div>
+                        <div class="summary-value">{total_est:,.0f}</div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Tickets.total_paid", "Total Paid")}</div>
+                        <div class="summary-value">{total_paid:,.0f}</div>
+                    </div>
+                </div>
+            """
+            
+            # Add Table
+            html += f"""
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{self.lm.get("Tickets.ticket_num", "Ticket #")}</th>
+                            <th>{self.lm.get("Tickets.customer", "Customer")}</th>
+                            <th>{self.lm.get("Tickets.device", "Device")}</th>
+                            <th>{self.lm.get("Tickets.status", "Status")}</th>
+                            <th>{self.lm.get("Tickets.technician", "Technician")}</th>
+                            <th>{self.lm.get("Tickets.created", "Created")}</th>
+                            <th>{self.lm.get("Tickets.estimated_cost", "Est. Cost")}</th>
+                            <th>{self.lm.get("Tickets.paid", "Paid")}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows_html}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+            """
+            
+            # Generate PDF
+            HTML(string=html).write_pdf(path)
+            
+            MessageHandler.show_success(
+                self, 
+                self.lm.get("Common.success", "Success"), 
+                f"{self.lm.get('Tickets.export_success', 'Successfully exported')} {len(self._current_ticket_list)} {self.lm.get('Tickets.tickets', 'tickets')}."
+            )
+            
+        except Exception as e:
+            MessageHandler.show_error(
+                self, 
+                self.lm.get("Common.error", "Error"), 
+                f"{self.lm.get('Tickets.export_failed', 'Failed to export tickets')}: {str(e)}"
+            )
+
     def _on_ticket_changed(self, *args):
         """Handle ticket changes"""
         QTimer.singleShot(500, self._load_tickets)

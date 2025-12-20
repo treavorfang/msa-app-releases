@@ -148,7 +148,7 @@ class OnlineLoginView(QWidget):
 
 
 class OnlineRegisterView(QWidget):
-    register_requested = Signal(str, str, str) # email, password, username (optional)
+    register_requested = Signal(str, str, str, str, str, str) # username, email, password, phone, city, country
     back_clicked = Signal()
 
     def __init__(self):
@@ -157,8 +157,8 @@ class OnlineRegisterView(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(40, 30, 40, 30)
-        layout.setSpacing(15)
+        layout.setContentsMargins(40, 20, 40, 20)
+        layout.setSpacing(10)
 
         title = QLabel("Create Account")
         title.setAlignment(Qt.AlignCenter)
@@ -169,34 +169,74 @@ class OnlineRegisterView(QWidget):
         sub.setAlignment(Qt.AlignCenter)
         sub.setStyleSheet("color: #64748B;")
         layout.addWidget(sub)
-        layout.addSpacing(10)
+        
+        # Scroll area if needed? No, let's keep it compact or use scroll if it gets too tall.
+        # But we are inside a dialog of fixed size potentially. 
+        # Making it a scrollable form is safer.
+        
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(10)
+        
+        # Username
+        form_layout.addWidget(QLabel("Username *"))
+        self.username = QLineEdit()
+        self.username.setPlaceholderText("Choose username")
+        self.username.setMinimumHeight(35)
+        form_layout.addWidget(self.username)
 
         # Email
-        layout.addWidget(QLabel("Email"))
-        layout.addSpacing(-10)
+        form_layout.addWidget(QLabel("Email *"))
         self.email = QLineEdit()
         self.email.setPlaceholderText("email@example.com")
-        self.email.setMinimumHeight(40)
-        layout.addWidget(self.email)
+        self.email.setMinimumHeight(35)
+        form_layout.addWidget(self.email)
+        
+        # Phone
+        form_layout.addWidget(QLabel("Phone *"))
+        self.phone = QLineEdit()
+        self.phone.setPlaceholderText("+1 234 ...")
+        self.phone.setMinimumHeight(35)
+        form_layout.addWidget(self.phone)
+
+        # City / Country Row
+        loc_row = QHBoxLayout()
+        city_col = QVBoxLayout()
+        city_col.setSpacing(2)
+        city_col.addWidget(QLabel("City"))
+        self.city = QLineEdit()
+        self.city.setPlaceholderText("Yangon")
+        self.city.setMinimumHeight(35)
+        city_col.addWidget(self.city)
+        
+        country_col = QVBoxLayout()
+        country_col.setSpacing(2)
+        country_col.addWidget(QLabel("Country"))
+        self.country = QLineEdit()
+        self.country.setPlaceholderText("Myanmar")
+        self.country.setMinimumHeight(35)
+        country_col.addWidget(self.country)
+        
+        loc_row.addLayout(city_col)
+        loc_row.addLayout(country_col)
+        form_layout.addLayout(loc_row)
 
         # Password
-        layout.addWidget(QLabel("Password"))
-        layout.addSpacing(-10)
+        form_layout.addWidget(QLabel("Password *"))
         self.pwd = QLineEdit()
         self.pwd.setPlaceholderText("Password")
         self.pwd.setEchoMode(QLineEdit.Password)
-        self.pwd.setMinimumHeight(40)
-        layout.addWidget(self.pwd)
+        self.pwd.setMinimumHeight(35)
+        form_layout.addWidget(self.pwd)
 
         # Confirm
-        layout.addWidget(QLabel("Confirm Password"))
-        layout.addSpacing(-10)
+        form_layout.addWidget(QLabel("Confirm Password *"))
         self.cpwd = QLineEdit()
         self.cpwd.setPlaceholderText("Confirm Password")
         self.cpwd.setEchoMode(QLineEdit.Password)
-        self.cpwd.setMinimumHeight(40)
-        layout.addWidget(self.cpwd)
+        self.cpwd.setMinimumHeight(35)
+        form_layout.addWidget(self.cpwd)
 
+        layout.addLayout(form_layout)
         layout.addSpacing(10)
         
         # Register Btn
@@ -218,16 +258,20 @@ class OnlineRegisterView(QWidget):
         self.setLayout(layout)
 
     def on_register(self):
+        username = self.username.text().strip()
         email = self.email.text().strip()
+        phone = self.phone.text().strip()
         p1 = self.pwd.text()
         p2 = self.cpwd.text()
+        city = self.city.text().strip()
+        country = self.country.text().strip()
         
-        if not email or not p1:
-            QMessageBox.warning(self, "Error", "All fields required")
+        if not all([username, email, phone, p1, p2]):
+            QMessageBox.warning(self, "Error", "Please fill all required fields")
             return
             
         if p1 != p2:
             QMessageBox.warning(self, "Error", "Passwords do not match")
             return
             
-        self.register_requested.emit(email, p1, email.split('@')[0])
+        self.register_requested.emit(username, email, p1, phone, city, country)

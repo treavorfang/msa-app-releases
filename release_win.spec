@@ -62,7 +62,9 @@ a = Analysis(
         'migrations.001_initial_schema',
         'migrations.002_add_ticket_indexes',
         'migrations.003_set_default_branch',
-        'migrations.004_seed_admin_user'
+        'migrations.004_seed_admin_user',
+        'migrations.005_add_customization_to_settings',
+        'migrations.007_add_technician_bonus_performance'
     ],
     hookspath=[],
     hooksconfig={},

@@ -244,24 +244,41 @@ class AboutDialog(QDialog):
     def _check_for_updates(self):
         """Invoke update service to check for new versions."""
         self.update_btn.setEnabled(False)
-        self.update_btn.setText(self.lm.get("About.checking_updates", "Checking..."))
+        self.update_btn.setText(self.lm.get("About.checking", "Checking..."))
         
-        # We could use a thread here, but for a 1-2 second API call,
-        # keeping it synchronous for simplicity unless UI lag is noticeable.
-        # Actually, let's keep it simple first.
-        
+        # Use QTimer to allow UI update before blocking call (or ideally use thread)
+        # For now, simple synchronous call is acceptable as request timeout is short (10s)
+        # But better to use the service in a non-blocking way if possible.
+        # The UpdateService.check_for_updates IS blocking. 
+        # Let's use a simple delayed call to let the button redraw first.
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._perform_check)
+
+    def _perform_check(self):
         try:
             service = UpdateService()
             result = service.check_for_updates()
             
-            if result.get('update_available'):
-                dialog = UpdateDialog(result, self)
-                dialog.exec()
-            elif result.get('error'):
-                 QMessageBox.warning(self, self.lm.get("Common.error", "Error"), f"Update check failed: {result['error']}")
+            if result.get("update_available"):
+                # Show update dialog
+                dlg = UpdateDialog(result, self)
+                if dlg.exec():
+                    # If update started/completed, maybe close about?
+                    pass
+            elif result.get("error"):
+                 QMessageBox.warning(
+                    self, 
+                    self.lm.get("Common.error", "Error"),
+                    f"{self.lm.get('About.check_failed', 'Update check failed')}: {result['error']}"
+                )
             else:
-                 QMessageBox.information(self, self.lm.get("About.up_to_date", "Up to Date"), 
-                                       self.lm.get("About.msg_up_to_date", "You are running the latest version."))
+                QMessageBox.information(
+                    self, 
+                    self.lm.get("About.up_to_date", "Up to Date"),
+                    f"{self.lm.get('About.latest_version_msg', 'You are using the latest version')} ({VERSION})."
+                )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
         finally:
             self.update_btn.setEnabled(True)
             self.update_btn.setText(self.lm.get("About.check_updates", "Check for Updates"))

@@ -2,7 +2,7 @@
 from PySide6.QtWidgets import (
     QMainWindow, QStackedWidget, QWidget, QVBoxLayout, 
     QHBoxLayout, QStatusBar, QToolBar, QLabel,
-    QPushButton, QFrame, QComboBox, QLineEdit
+    QPushButton, QFrame, QComboBox, QLineEdit, QApplication
 )
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt, QSize, QTimer, Signal, QSettings, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer as QAnimationTimer # Import necessary QtCore components
@@ -15,7 +15,7 @@ from views.inventory.modern_inventory import ModernInventoryTab
 from views.report.reports import ReportsTab
 from views.setting.settings import SettingsTab
 from views.technician.technicians import TechniciansTab
-# FinancialTab import removed - financial moved to inventoryontent moved to Inventory tab
+from views.financial.modern_financial_tab import ModernFinancialTab
 from datetime import datetime
 from config.config_manager import APP_NAME, APP_VERSION, APP_SHORT_NAME
 from config.config import ICON_PATHS  # Import icon paths from config
@@ -47,7 +47,23 @@ class MainWindow(QMainWindow):
         currency_formatter.set_currency_overrides(currency_code)
         
         self.setWindowTitle(f"{APP_NAME} | {APP_VERSION}")
-        self.setGeometry(100, 100, 1300, 800)
+        
+        # Smart Sizing for Window/Mac Compatibility
+        screen = QApplication.primaryScreen()
+        avail_geo = screen.availableGeometry()
+        
+        target_w = 1600
+        target_h = 900
+        
+        if avail_geo.width() <= target_w or avail_geo.height() <= target_h:
+             # On small screens (1280x720, 1366x768), maximize to use all space
+            self.resize(avail_geo.width() - 20, avail_geo.height() - 50)
+            self.showMaximized()
+        else:
+            # On large screens, use the spacious modern size and center it
+            x = (avail_geo.width() - target_w) // 2
+            y = (avail_geo.height() - target_h) // 2
+            self.setGeometry(x, y, target_w, target_h)
         
         self._create_actions()
         self._setup_ui()
@@ -104,8 +120,8 @@ class MainWindow(QMainWindow):
         # This dramatically improves initial load time (3-5s -> <1s in built version)
         
         # Track which tabs have been created
-        self._tab_created = [False] * 10
-        self._tab_widgets = [None] * 10
+        self._tab_created = [False] * 11
+        self._tab_widgets = [None] * 11
         
         # 0. Dashboard - Create immediately (always shown first)
         self.dashboard_tab = self._create_dashboard_tab()
@@ -113,8 +129,8 @@ class MainWindow(QMainWindow):
         self._tab_created[0] = True
         self._tab_widgets[0] = self.dashboard_tab
         
-        # 1-9. Other tabs - Create placeholders, will be created on first access
-        for i in range(1, 10):
+        # 1-10. Other tabs - Create placeholders, will be created on first access
+        for i in range(1, 11):
             placeholder = self._create_placeholder_widget()
             self.stacked_widget.addWidget(placeholder)
         
@@ -218,6 +234,10 @@ class MainWindow(QMainWindow):
         self.technician_tab = TechniciansTab(self.container, self.user)
         return self.technician_tab
 
+    def _create_financial_tab(self):
+        self.financial_tab = ModernFinancialTab(self.container, self.user)
+        return self.financial_tab
+
     def _create_reports_tab(self):
         self.reports_tab = ReportsTab(self.container)
         return self.reports_tab
@@ -246,7 +266,7 @@ class MainWindow(QMainWindow):
     
     def _on_tab_changed(self, index):
         """Handle tab change - create tab if not yet created"""
-        if index < 0 or index >= 10:
+        if index < 0 or index >= 11:
             return
             
         # If tab hasn't been created yet, create it now
@@ -283,10 +303,13 @@ class MainWindow(QMainWindow):
         elif index == 7:  # Reports
             tab_widget = self._create_reports_tab()
             self.reports_tab = tab_widget
-        elif index == 8:  # Settings
+        elif index == 8:  # Financial
+            tab_widget = self._create_financial_tab()
+            self.financial_tab = tab_widget
+        elif index == 9:  # Settings
             tab_widget = self._create_settings_tab()
             self.settings_tab = tab_widget
-        elif index == 9:  # Admin
+        elif index == 10:  # Admin
             tab_widget = self._create_admin_tab()
             self.admin_tab = tab_widget
         
@@ -366,11 +389,14 @@ class MainWindow(QMainWindow):
         self.reports_action = QAction(self.lm.get("MainWindow.reports", "Reports"), self)
         self.reports_action.triggered.connect(lambda: self.stacked_widget.setCurrentIndex(7))
         
+        self.financial_action = QAction(self.lm.get("MainWindow.financial", "Financial"), self)
+        self.financial_action.triggered.connect(lambda: self.stacked_widget.setCurrentIndex(8))
+        
         self.settings_action = QAction(self.lm.get("MainWindow.settings", "Settings"), self)
-        self.settings_action.triggered.connect(lambda: self.stacked_widget.setCurrentIndex(8))
+        self.settings_action.triggered.connect(lambda: self.stacked_widget.setCurrentIndex(9))
         
         self.admin_dashboard_action = QAction(self.lm.get("Users.dashboard_title", "Admin Dashboard"), self)
-        self.admin_dashboard_action.triggered.connect(lambda: self.stacked_widget.setCurrentIndex(9))
+        self.admin_dashboard_action.triggered.connect(lambda: self.stacked_widget.setCurrentIndex(10))
     
     def _create_menu(self):
         menubar = self.menuBar()
@@ -515,8 +541,9 @@ class MainWindow(QMainWindow):
             (self.lm.get("MainWindow.inventory", "Inventory"), "inventory", self.inventory_action, 'inventory:view'),
             (self.lm.get("Users.technicians_title", "Technicians"), "technicians", self.technician_action, 'technicians:view'),
             (self.lm.get("MainWindow.reports", "Reports"), "reports", self.reports_action, 'reports:view'),
+            (self.lm.get("MainWindow.financial", "Financial"), "financial", self.financial_action, 'financial:view'),
             (self.lm.get("MainWindow.settings", "Settings"), "settings", self.settings_action, 'settings:manage'),
-            (self.lm.get("Users.dashboard_title", "Admin Dashboard"), "dashboard", self.admin_dashboard_action, 'admin_access'),
+            (self.lm.get("Users.dashboard_title", "Admin Dashboard"), "admin", self.admin_dashboard_action, 'admin_access'),
         ]
         
         # Filter items based on permissions

@@ -25,9 +25,22 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-echo -e "${YELLOW}Step 1: Cleaning previous build artifacts...${NC}"
-rm -rf build dist
-echo -e "${GREEN}✓ Cleaned build directories${NC}"
+echo -e "${YELLOW}Step 1: Archiving and cleaning previous build artifacts...${NC}"
+rm -rf build
+if [ -d "dist" ]; then
+    # Try to get version from version.json
+    if [ -f "version.json" ]; then
+        OLD_VER=$(python3 -c "import json; print(json.load(open('version.json'))['version'])")
+        BUILD_TIME=$(date +%Y%m%d_%H%M%S)
+        ARCHIVE_NAME="dist_v${OLD_VER}_${BUILD_TIME}"
+        echo "Archiving existing dist to $ARCHIVE_NAME..."
+        mv dist "$ARCHIVE_NAME"
+    else
+        echo "Cleaning dist directory..."
+        rm -rf dist
+    fi
+fi
+echo -e "${GREEN}✓ Cleaned build directories and archived previous dist${NC}"
 echo ""
 
 echo -e "${YELLOW}Step 2: Checking Python environment...${NC}"
@@ -69,11 +82,11 @@ fi
 echo ""
 
 echo -e "${YELLOW}Step 6: Updating version information...${NC}"
-if [ -f "scripts/update_version.py" ]; then
-    python3 scripts/update_version.py
+if [ -f "scripts/generate_version.py" ]; then
+    python3 scripts/generate_version.py
     echo -e "${GREEN}✓ Version updated${NC}"
 else
-    echo -e "${YELLOW}⚠ Version update script not found, skipping...${NC}"
+    echo -e "${YELLOW}⚠ Version generation script not found, skipping...${NC}"
 fi
 echo ""
 
@@ -99,7 +112,7 @@ echo ""
 
 echo -e "${YELLOW}Step 7: Building application with PyInstaller...${NC}"
 echo "This may take several minutes..."
-python3 -m PyInstaller release.spec --clean --noconfirm
+python3 -m PyInstaller release_mac.spec --clean --noconfirm
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}✗ Build failed!${NC}"

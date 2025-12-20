@@ -85,6 +85,151 @@ class AdminDashboard(QWidget):
         # self.load_permissions()
         self._data_loaded = False
         
+        # Theme Handling
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
+        else:
+             self.current_theme = 'dark'
+             
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
+
+    def _on_theme_changed(self, theme_name):
+        """Update dashboard theme"""
+        self.current_theme = theme_name
+        
+        if theme_name == 'dark':
+            bg_color = "#1F2937"
+            input_bg = "#1F2937"
+            input_border = "#4B5563"
+            text_color = "white"
+            placeholder_color = "#9CA3AF"
+            card_bg = "#374151"
+            card_border = "#4B5563"
+            table_bg = "#1F2937"
+            btn_secondary_bg = "#374151"
+            btn_secondary_text = "white"
+        else:
+            bg_color = "#FFFFFF"
+            input_bg = "#F3F4F6"
+            input_border = "#D1D5DB"
+            text_color = "#1F2937"
+            placeholder_color = "#6B7280"
+            card_bg = "#FFFFFF"
+            card_border = "#E5E7EB"
+            table_bg = "#FFFFFF"
+            btn_secondary_bg = "#E5E7EB"
+            btn_secondary_text = "#374151"
+            
+        # 1. User Tab Controls
+        if hasattr(self, 'search_input'):
+            self.search_input.setStyleSheet(f"""
+                QLineEdit {{
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    border: 1px solid {input_border};
+                    background-color: {input_bg}; 
+                    color: {text_color};
+                }}
+                QLineEdit:focus {{ border: 1px solid #3B82F6; }}
+            """)
+            
+        if hasattr(self, 'role_filter'):
+            self.role_filter.setStyleSheet(f"""
+                QComboBox {{
+                    padding: 8px;
+                    border-radius: 6px;
+                    border: 1px solid {input_border};
+                    background-color: {input_bg};
+                    color: {text_color};
+                }}
+            """)
+            
+        if hasattr(self, 'users_table'):
+            self.users_table.setStyleSheet(f"QTableWidget {{ background-color: {table_bg}; border-radius: 8px; color: {text_color}; }}")
+            
+        # View Switchers (User)
+        view_btn_style = f"""
+            QPushButton {{
+                padding: 8px 16px;
+                background-color: transparent;
+                border: 1px solid {input_border};
+                border-radius: 6px;
+                color: {placeholder_color};
+            }}
+            QPushButton:checked {{
+                background-color: #3B82F6;
+                border-color: #3B82F6;
+                color: white;
+            }}
+            QPushButton:hover {{ background-color: rgba(59, 130, 246, 0.1); }}
+        """
+        if hasattr(self, 'user_view_card_btn'):
+            self.user_view_card_btn.setStyleSheet(view_btn_style)
+            self.user_view_list_btn.setStyleSheet(view_btn_style)
+
+        # 2. Role Tab Controls
+        if hasattr(self, 'new_role_name'):
+            common_input = f"padding: 8px; border-radius: 6px; background: {input_bg}; color: {text_color}; border: 1px solid {input_border};"
+            self.new_role_name.setStyleSheet(common_input)
+            self.new_role_desc.setStyleSheet(common_input)
+            
+        if hasattr(self, 'role_view_card_btn'):
+             self.role_view_card_btn.setStyleSheet(view_btn_style)
+             self.role_view_list_btn.setStyleSheet(view_btn_style)
+             
+        if hasattr(self, 'roles_table'):
+            self.roles_table.setStyleSheet(f"QTableWidget {{ background-color: {table_bg}; border-radius: 8px; color: {text_color}; }}")
+
+        # Refresh lists to update cards if in card view
+        if hasattr(self, 'current_user_view') and self.current_user_view == 'cards':
+            self.load_users()
+        if hasattr(self, 'current_role_view') and self.current_role_view == 'cards':
+            self.load_roles()
+            
+        # Update permissions tab
+        if hasattr(self, 'permissions_table'):
+             self.permissions_table.setStyleSheet(f"QTableWidget {{ background-color: {table_bg}; border-radius: 8px; color: {text_color}; }}")
+
+        # Action Buttons (Secondary)
+        if theme_name == 'dark':
+             btn_sec_hover = "#4B5563"
+             btn_sec_disabled_bg = "#1F2937"
+             btn_sec_disabled_fg = "#6B7280"
+        else:
+             btn_sec_hover = "#D1D5DB"
+             btn_sec_disabled_bg = "#F3F4F6"
+             btn_sec_disabled_fg = "#9CA3AF"
+
+        secondary_btn_style = f"""
+            QPushButton {{
+                background-color: {btn_secondary_bg}; color: {btn_secondary_text}; border: none; padding: 8px 16px; border-radius: 6px;
+            }}
+            QPushButton:disabled {{ color: {btn_sec_disabled_fg}; background-color: {btn_sec_disabled_bg}; }}
+            QPushButton:hover:!disabled {{ background-color: {btn_sec_hover}; }}
+        """
+
+        if hasattr(self, 'user_actions'):
+            for btn in self.user_actions:
+                btn.setStyleSheet(secondary_btn_style)
+
+        if hasattr(self, 'role_actions'):
+            for btn in self.role_actions:
+                 btn.setStyleSheet(secondary_btn_style)
+
+        # Primary Buttons (Add User, Add Role)
+        primary_btn_style = """
+            QPushButton {
+                background-color: #3B82F6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: #2563EB; }
+        """
+        if hasattr(self, 'user_add_btn'):
+            self.user_add_btn.setStyleSheet(primary_btn_style)
+        if hasattr(self, 'role_add_btn'):
+            self.role_add_btn.setStyleSheet(primary_btn_style)
+        
     def setup_users_tab(self):
         layout = QVBoxLayout()
         layout.setSpacing(16)
@@ -228,8 +373,8 @@ class AdminDashboard(QWidget):
         actions_bar.addStretch()
         
         # Add User Button (Always right aligned in action bar or separate)
-        btn_add = create_action_btn(self.lm.get("Admin.action_new_user", "New User"), "➕", self.add_user, primary=True)
-        actions_bar.addWidget(btn_add)
+        self.user_add_btn = create_action_btn(self.lm.get("Admin.action_new_user", "New User"), "➕", self.add_user, primary=True)
+        actions_bar.addWidget(self.user_add_btn)
         
         layout.addLayout(actions_bar)
         
@@ -309,13 +454,13 @@ class AdminDashboard(QWidget):
         self.new_role_desc.setPlaceholderText(self.lm.get("Admin.description_placeholder", "Description"))
         self.new_role_desc.setStyleSheet("padding: 8px; border-radius: 6px; background: #1F2937; color: white;")
         
-        add_btn = QPushButton(f"➕ {self.lm.get('Admin.btn_create_role', 'Create Role')}")
-        add_btn.setStyleSheet("background-color: #3B82F6; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold;")
-        add_btn.clicked.connect(self.add_role)
+        self.role_add_btn = QPushButton(f"➕ {self.lm.get('Admin.btn_create_role', 'Create Role')}")
+        self.role_add_btn.setStyleSheet("background-color: #3B82F6; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold;")
+        self.role_add_btn.clicked.connect(self.add_role)
         
         top_bar.addWidget(self.new_role_name)
         top_bar.addWidget(self.new_role_desc)
-        top_bar.addWidget(add_btn)
+        top_bar.addWidget(self.role_add_btn)
         top_bar.addStretch()
         
         # View Switcher
@@ -562,11 +707,26 @@ class AdminDashboard(QWidget):
         card = QFrame()
         is_selected = self.selected_user and self.selected_user.id == user.id
         
+        is_dark = getattr(self, 'current_theme', 'dark') == 'dark'
+        
         # Premium Card Style
-        bg_color = "#374151"
-        border_color = "#4B5563"
+        if is_dark:
+            bg_color = "#374151"
+            border_color = "#4B5563"
+            text_main = "white"
+            text_sub = "#9CA3AF"
+            text_dim = "#6B7280"
+            hover_border = "#60A5FA"
+        else:
+            bg_color = "#FFFFFF"
+            border_color = "#E5E7EB"
+            text_main = "#1F2937"
+            text_sub = "#4B5563"
+            text_dim = "#6B7280"
+            hover_border = "#3B82F6"
+
         if is_selected:
-            bg_color = "rgba(59, 130, 246, 0.2)"
+            bg_color = "rgba(59, 130, 246, 0.2)" if is_dark else "#EFF6FF"
             border_color = "#3B82F6"
         
         card.setStyleSheet(f"""
@@ -576,7 +736,7 @@ class AdminDashboard(QWidget):
                 border-radius: 12px;
             }}
             QFrame:hover {{
-                border-color: #60A5FA;
+                border-color: {hover_border};
             }}
         """)
         card.setFixedSize(240, 160)
@@ -599,7 +759,8 @@ class AdminDashboard(QWidget):
         
         status_lbl = QLabel("ACTIVE" if user.is_active else "DISABLED")
         s_color = "#10B981" if user.is_active else "#EF4444"
-        s_bg = "rgba(16, 185, 129, 0.1)" if user.is_active else "rgba(239, 68, 68, 0.1)"
+        s_bg = "rgba(16, 185, 129, 0.1)" if user.is_active else "rgba(239, 68, 68, 0.1)" 
+        # Note: rgba works on light theme too, arguably better to have distinct colors but this is fine
         status_lbl.setStyleSheet(f"""
             color: {s_color}; background-color: {s_bg}; 
             padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; border: none;
@@ -609,16 +770,16 @@ class AdminDashboard(QWidget):
         
         # User Info
         name = QLabel(user.username)
-        name.setStyleSheet("color: white; font-weight: bold; font-size: 16px; border: none; background: transparent;")
+        name.setStyleSheet(f"color: {text_main}; font-weight: bold; font-size: 16px; border: none; background: transparent;")
         layout.addWidget(name)
         
         role_name = user.role.name if user.role else "No Role"
         role_lbl = QLabel(f"🛡️ {role_name}")
-        role_lbl.setStyleSheet("color: #9CA3AF; font-size: 12px; border: none; background: transparent;")
+        role_lbl.setStyleSheet(f"color: {text_sub}; font-size: 12px; border: none; background: transparent;")
         layout.addWidget(role_lbl)
         
         email_lbl = QLabel(user.email)
-        email_lbl.setStyleSheet("color: #6B7280; font-size: 11px; border: none; background: transparent;")
+        email_lbl.setStyleSheet(f"color: {text_dim}; font-size: 11px; border: none; background: transparent;")
         email_lbl.setWordWrap(True)
         layout.addWidget(email_lbl)
         
@@ -684,10 +845,25 @@ class AdminDashboard(QWidget):
         card = QFrame()
         is_selected = self.selected_role and self.selected_role.id == role.id
         
-        bg = "#374151"
-        border = "#4B5563"
+        is_dark = getattr(self, 'current_theme', 'dark') == 'dark'
+        
+        if is_dark:
+            bg = "#374151"
+            border = "#4B5563"
+            text_main = "white"
+            text_sub = "#9CA3AF"
+            text_dim = "#6B7280"
+            hover_border = "#60A5FA"
+        else:
+            bg = "#FFFFFF"
+            border = "#E5E7EB"
+            text_main = "#1F2937"
+            text_sub = "#4B5563"
+            text_dim = "#6B7280"
+            hover_border = "#3B82F6"
+
         if is_selected:
-            bg = "rgba(59, 130, 246, 0.2)"
+            bg = "rgba(59, 130, 246, 0.2)" if is_dark else "#EFF6FF"
             border = "#3B82F6"
             
         card.setStyleSheet(f"""
@@ -696,7 +872,7 @@ class AdminDashboard(QWidget):
                 border: 1px solid {border};
                 border-radius: 12px;
             }}
-            QFrame:hover {{ border-color: #60A5FA; }}
+            QFrame:hover {{ border-color: {hover_border}; }}
         """)
         card.setFixedSize(240, 140)
         
@@ -711,21 +887,21 @@ class AdminDashboard(QWidget):
         header.addWidget(icon)
         
         name = QLabel(role.name)
-        name.setStyleSheet("color: white; font-weight: bold; font-size: 16px; border: none; background: transparent;")
+        name.setStyleSheet(f"color: {text_main}; font-weight: bold; font-size: 16px; border: none; background: transparent;")
         header.addWidget(name)
         header.addStretch()
         layout.addLayout(header)
         
         desc = QLabel(role.description)
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #9CA3AF; font-size: 12px; border: none; background: transparent;")
+        desc.setStyleSheet(f"color: {text_sub}; font-size: 12px; border: none; background: transparent;")
         layout.addWidget(desc)
         
         layout.addStretch()
         
         count = User.select().where(User.role == role).count()
         count_lbl = QLabel(f"👥 {count} Assigned Users")
-        count_lbl.setStyleSheet("color: #6B7280; font-size: 11px; font-weight: bold; border: none; background: transparent;")
+        count_lbl.setStyleSheet(f"color: {text_dim}; font-size: 11px; font-weight: bold; border: none; background: transparent;")
         layout.addWidget(count_lbl)
         
         card.mousePressEvent = lambda e: self._on_role_card_clicked(role)

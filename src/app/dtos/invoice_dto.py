@@ -120,7 +120,25 @@ class InvoiceDTO:
         return {
             'invoice_id': self.id,
             'invoice_number': self.invoice_number,
+            'subtotal': float(self.subtotal),
+            'tax': float(self.tax),
+            'discount': float(self.discount),
             'total': float(self.total),
-            'status': self.payment_status,
-            'items_count': len(self.items)
+            'paid_amount': float(self.paid_amount),
+            'balance_due': float(self.balance_due),
+            'payment_status': self.payment_status,
+            'device_id': self.device_id,
+            'branch_id': self.branch_id,
+            'created_by': self.created_by,
+            'customer_name': self.customer_name,
+            'customer_phone': self.customer_phone,
+            'customer_email': self.customer_email,
+            'device_brand': self.device_brand,
+            'device_model': self.device_model,
+            'device_serial': self.device_serial,
+            'error_description': self.error_description,
+            'items_count': len(self.items),
+            'due_date': self.due_date.isoformat() if hasattr(self.due_date, 'isoformat') else self.due_date,
+            'paid_date': self.paid_date.isoformat() if hasattr(self.paid_date, 'isoformat') else self.paid_date,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at
         }

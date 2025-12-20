@@ -63,6 +63,15 @@ class PurchaseReturnDTO:
         return {
             'return_id': self.id,
             'return_number': self.return_number,
+            'purchase_order_id': self.purchase_order_id,
+            'reason': self.reason,
             'status': self.status,
-            'total_amount': float(self.total_amount)
+            'total_amount': float(self.total_amount),
+            'notes': self.notes,
+            'created_by': self.created_by,
+            'approved_by': self.approved_by,
+            'items_count': len(self.items),
+            'return_date': self.return_date.isoformat() if hasattr(self.return_date, 'isoformat') else self.return_date,
+            'approved_at': self.approved_at.isoformat() if hasattr(self.approved_at, 'isoformat') else self.approved_at,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at
         }

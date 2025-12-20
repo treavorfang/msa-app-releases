@@ -12,9 +12,9 @@ app = QApplication.instance() or QApplication(sys.argv)
 print("Verifying UI components initialization...")
 
 try:
-    from views.financial.credit_note_list_tab import CreditNoteListTab
-    from views.financial.credit_note_details_dialog import CreditNoteDetailsDialog
-    from views.financial.apply_credit_dialog import ApplyCreditDialog
+    from views.inventory.financial.credit_note_list_tab import CreditNoteListTab
+    from views.inventory.financial.credit_note_details_dialog import CreditNoteDetailsDialog
+    from views.inventory.financial.apply_credit_dialog import ApplyCreditDialog
     from models.credit_note import CreditNote
     from models.supplier import Supplier
     from datetime import datetime

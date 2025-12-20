@@ -11,10 +11,11 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QComboBox, QCheckBox, QFrame, QScrollArea,
     QGridLayout, QStackedWidget, QDialog, QFormLayout,
-    QDialogButtonBox, QTableWidget, QTableWidgetItem, QHeaderView
+    QDialogButtonBox, QTableWidget, QTableWidgetItem, QHeaderView,
+    QMenu, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal, QTimer
-from PySide6.QtGui import QColor, QCursor
+from PySide6.QtGui import QColor, QCursor, QAction
 from typing import List, Dict
 from dtos.device_dto import DeviceDTO
 from utils.validation.message_handler import MessageHandler
@@ -26,6 +27,7 @@ from core.events import (
     TicketCreatedEvent, TicketUpdatedEvent, TicketStatusChangedEvent
 )
 from views.components.loading_overlay import LoadingOverlay
+from views.components.new_dashboard_widgets import is_dark_theme
 
 
 class ModernDevicesTab(QWidget):
@@ -77,9 +79,7 @@ class ModernDevicesTab(QWidget):
         filter_layout = self._create_advanced_filters()
         layout.addLayout(filter_layout)
         
-        # Action buttons
-        action_layout = self._create_action_buttons()
-        layout.addLayout(action_layout)
+
         
         # Stacked widget for different views
         self.view_stack = QStackedWidget()
@@ -109,8 +109,8 @@ class ModernDevicesTab(QWidget):
         view_label.setObjectName("metricLabel")
         layout.addWidget(view_label)
         
-        self.cards_view_btn = QPushButton(f"📇 {self.lm.get('Invoices.view_cards', 'Cards')}")
-        self.list_view_btn = QPushButton(f"📋 {self.lm.get('Invoices.view_list', 'List')}")
+        self.cards_view_btn = QPushButton(self.lm.get('Invoices.view_cards', '📇 Cards'))
+        self.list_view_btn = QPushButton(self.lm.get('Invoices.view_list', '📋 List'))
         
         self.cards_view_btn.setCheckable(True)
         self.list_view_btn.setCheckable(True)
@@ -144,16 +144,14 @@ class ModernDevicesTab(QWidget):
         """Create advanced filter controls"""
         layout = QVBoxLayout()
         
-        # First row - Search and basic filters
+        # First row - Search and filters
         row1 = QHBoxLayout()
         
         # Search
         self.search_input = QLineEdit()
-        # Search
-        self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(f"🔍 {self.lm.get('Devices.search_placeholder', 'Search by barcode, brand, model, IMEI, serial...')}")
         self.search_input.setClearButtonEnabled(True)
-        self.search_input.setMinimumWidth(300)
+        self.search_input.setMinimumWidth(250)
         row1.addWidget(self.search_input)
         
         # Status filter
@@ -165,24 +163,43 @@ class ModernDevicesTab(QWidget):
         self.status_filter.addItem(self.lm.get("Common.repaired", "Repaired"), "repaired")
         self.status_filter.addItem(self.lm.get("Common.completed", "Completed"), "completed")
         self.status_filter.addItem(self.lm.get("Common.returned", "Returned"), "returned")
-        self.status_filter.setMinimumWidth(150)
+        self.status_filter.setMinimumWidth(130)
         row1.addWidget(self.status_filter)
         
         # Customer filter
         self.customer_filter = QComboBox()
-        self.customer_filter.setMinimumWidth(150)
+        self.customer_filter.setMinimumWidth(130)
         self.customer_filter.addItem(self.lm.get("Customers.all_customers", "All Customers"), "all")
         self.customer_filter.setPlaceholderText(self.lm.get("Devices.filter_by_customer", "Filter by Customer"))
         row1.addWidget(self.customer_filter)
         
-        row1.addStretch()
+        # Refresh button
+        refresh_btn = QPushButton(f"🔄 {self.lm.get('Common.refresh', 'Refresh')}")
+        refresh_btn.clicked.connect(self._load_devices)
+        row1.addWidget(refresh_btn)
+        
+        # Export button with menu
+        export_btn = QPushButton(f"📥 {self.lm.get('Common.export', 'Export')}")
+        export_menu = QMenu(self)
+        
+        # CSV Action
+        export_csv_action = QAction(self.lm.get("Common.export_csv", "Export CSV"), self)
+        export_csv_action.triggered.connect(self._export_to_csv)
+        export_menu.addAction(export_csv_action)
+        
+        # PDF Action
+        export_pdf_action = QAction(self.lm.get("Common.export_pdf", "Export PDF"), self)
+        export_pdf_action.triggered.connect(self._export_to_pdf)
+        export_menu.addAction(export_pdf_action)
+        
+        export_btn.setMenu(export_menu)
+        row1.addWidget(export_btn)
         
         layout.addLayout(row1)
         
-        # Second row - Additional filters
+        # Second row - Checkboxes and Actions
         row2 = QHBoxLayout()
         
-        # Show deleted
         # Show deleted
         self.show_deleted_checkbox = QCheckBox(self.lm.get("Common.show_deleted", "Show Deleted"))
         row2.addWidget(self.show_deleted_checkbox)
@@ -192,12 +209,46 @@ class ModernDevicesTab(QWidget):
         self.show_returned_checkbox.setToolTip(self.lm.get("Devices.show_returned_tooltip", "Show devices that have been returned to customers"))
         row2.addWidget(self.show_returned_checkbox)
         
-        row2.addStretch()
-        
         # Clear filters button
         clear_btn = QPushButton(f"🔄 {self.lm.get('Common.clear_filters', 'Clear Filters')}")
         clear_btn.clicked.connect(self._clear_filters)
         row2.addWidget(clear_btn)
+        
+        row2.addStretch()
+        
+        # Bulk actions
+        self.bulk_update_btn = QPushButton(f"📝 {self.lm.get('Common.bulk_update', 'Bulk Update')}")
+        self.bulk_update_btn.setEnabled(False)
+        row2.addWidget(self.bulk_update_btn)
+        
+        self.bulk_delete_btn = QPushButton(f"🗑️ {self.lm.get('Customers.bulk_delete', 'Bulk Delete')}")
+        self.bulk_delete_btn.setEnabled(False)
+        row2.addWidget(self.bulk_delete_btn)
+        
+        # Barcode buttons
+        self.preview_barcodes_btn = QPushButton(f"👁️ {self.lm.get('Devices.preview_barcodes', 'Preview Barcodes')}")
+        self.preview_barcodes_btn.setEnabled(False)
+        row2.addWidget(self.preview_barcodes_btn)
+        
+        self.print_barcodes_btn = QPushButton(f"🖨️ {self.lm.get('Devices.print_barcodes', 'Print Barcodes')}")
+        self.print_barcodes_btn.setEnabled(False)
+        row2.addWidget(self.print_barcodes_btn)
+        
+        # New device button (primary)
+        self.new_device_btn = QPushButton(f"➕ {self.lm.get('Devices.new_device', 'New Device')}")
+        self.new_device_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3B82F6;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+            }
+        """)
+        row2.addWidget(self.new_device_btn)
         
         layout.addLayout(row2)
         
@@ -221,57 +272,7 @@ class ModernDevicesTab(QWidget):
         self.preview_barcodes_btn.setEnabled(any_checked)
         self.print_barcodes_btn.setEnabled(any_checked)
     
-    def _create_action_buttons(self):
-        """Create action buttons"""
-        layout = QHBoxLayout()
-        
-        # New device button (primary)
-        self.new_device_btn = QPushButton(f"➕ {self.lm.get('Devices.new_device', 'New Device')}")
-        self.new_device_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3B82F6;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
-        """)
-        layout.addWidget(self.new_device_btn)
-        
-        # Bulk actions
-        self.bulk_update_btn = QPushButton(f"📝 {self.lm.get('Common.bulk_update', 'Bulk Update')}")
-        self.bulk_update_btn.setEnabled(False)
-        layout.addWidget(self.bulk_update_btn)
-        
-        self.bulk_delete_btn = QPushButton(f"🗑️ {self.lm.get('Customers.bulk_delete', 'Bulk Delete')}")
-        self.bulk_delete_btn.setEnabled(False)
-        layout.addWidget(self.bulk_delete_btn)
-        
-        # Barcode buttons
-        self.preview_barcodes_btn = QPushButton(f"👁️ {self.lm.get('Devices.preview_barcodes', 'Preview Barcodes')}")
-        self.preview_barcodes_btn.setEnabled(False)
-        layout.addWidget(self.preview_barcodes_btn)
-        
-        self.print_barcodes_btn = QPushButton(f"🖨️ {self.lm.get('Devices.print_barcodes', 'Print Barcodes')}")
-        self.print_barcodes_btn.setEnabled(False)
-        layout.addWidget(self.print_barcodes_btn)
-        
-        layout.addStretch()
-        
-        # Refresh button
-        refresh_btn = QPushButton(f"🔄 {self.lm.get('Common.refresh', 'Refresh')}")
-        refresh_btn.clicked.connect(self._load_devices)
-        layout.addWidget(refresh_btn)
-        
-        # Export button
-        export_btn = QPushButton(f"📥 {self.lm.get('Common.export', 'Export to PDF')}")
-        export_btn.clicked.connect(self._export_devices)
-        layout.addWidget(export_btn)
-        
-        return layout
+
     
     def _create_cards_view(self):
         """Create card/grid view"""
@@ -340,6 +341,18 @@ class ModernDevicesTab(QWidget):
         self.preview_barcodes_btn.clicked.connect(self._preview_barcodes)
         self.print_barcodes_btn.clicked.connect(self._print_barcodes)
         self.devices_table.itemChanged.connect(self._update_bulk_buttons_state)
+        
+        self._connect_theme_signal()
+
+    def _connect_theme_signal(self):
+        """Connect to theme change signal"""
+        if self.container and hasattr(self.container, 'theme_controller') and self.container.theme_controller:
+            if hasattr(self.container.theme_controller, 'theme_changed'):
+                self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme change"""
+        self._load_devices()
         
         # Table double click
         self.devices_table.doubleClicked.connect(self._on_table_double_click)
@@ -529,11 +542,33 @@ class ModernDevicesTab(QWidget):
     
     def _create_device_card(self, device: DeviceDTO):
         """Create a device card widget"""
+        # Theme colors
+        dark_mode = is_dark_theme(self)
+        
+        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
+        border_color = "#374151" if dark_mode else "#E5E7EB"
+        text_main = "white" if dark_mode else "#1F2937"
+        text_sub = "#9CA3AF" if dark_mode else "#6B7280"
+        
         card = QFrame()
         card.setObjectName("deviceCard")
         card.setCursor(QCursor(Qt.PointingHandCursor))
         card.setMinimumHeight(180)
         card.setMaximumHeight(220)
+        
+        # Initial style is handled by _update_card_selection_style logic or here for base
+        # We set base logic in _update_card_selection_style but consistent fallback here
+        card.setStyleSheet(f"""
+            QFrame#deviceCard {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 8px;
+            }}
+            QFrame#deviceCard:hover {{
+                border-color: #3B82F6;
+                background-color: {bg_color};
+            }}
+        """)
         
         # Store device data
         card.device_id = device.id
@@ -562,7 +597,7 @@ class ModernDevicesTab(QWidget):
         header = QHBoxLayout()
         
         barcode = QLabel(device.barcode or self.lm.get("Devices.no_barcode", "No Barcode"))
-        barcode.setStyleSheet("font-weight: bold; font-size: 14px;")
+        barcode.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {text_main};")
         header.addWidget(barcode)
         
         header.addStretch()
@@ -583,21 +618,21 @@ class ModernDevicesTab(QWidget):
         
         layout.addLayout(header)
         
-        # Device info
+        # Device information
         device_info = f"{device.brand} {device.model}" if device.brand and device.model else self.lm.get("Common.unknown_device", "Unknown Device")
         device_label = QLabel(device_info)
-        device_label.setStyleSheet("font-size: 13px; font-weight: 600;")
+        device_label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {text_main};")
         layout.addWidget(device_label)
         
         # Customer
         customer = QLabel(device.customer_name if device.customer_name else self.lm.get("Common.no_customer", "No Customer"))
-        customer.setStyleSheet("font-size: 12px; color: #9CA3AF;")
+        customer.setStyleSheet(f"font-size: 12px; color: {text_sub};")
         layout.addWidget(customer)
         
         # Color and condition
         details = f"{self.lm.get('Devices.color', 'Color')}: {device.color or self.lm.get('Common.not_applicable', 'N/A')} | {self.lm.get('Devices.condition', 'Condition')}: {device.condition or self.lm.get('Common.not_applicable', 'N/A')}"
         details_label = QLabel(details)
-        details_label.setStyleSheet("font-size: 11px; color: #6B7280;")
+        details_label.setStyleSheet(f"font-size: 11px; color: {text_sub};")
         layout.addWidget(details_label)
         
         # Lock/Passcode information
@@ -686,25 +721,36 @@ class ModernDevicesTab(QWidget):
         
     def _update_card_selection_style(self, card, is_selected):
         """Update card style based on selection"""
+        # Theme colors
+        dark_mode = is_dark_theme(self)
+        
+        # Base colors
+        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
+        border_color = "#374151" if dark_mode else "#E5E7EB"
+        
+        # Selection colors
+        sel_bg = "#374151" if dark_mode else "#EFF6FF"
+        sel_border = "#3B82F6" # Stay blue
+        
         if is_selected:
-            card.setStyleSheet("""
-                QFrame#deviceCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
+            card.setStyleSheet(f"""
+                QFrame#deviceCard {{
+                    background-color: {sel_bg};
+                    border: 2px solid {sel_border};
                     border-radius: 8px;
-                }
+                }}
             """)
         else:
-            card.setStyleSheet("""
-                QFrame#deviceCard {
-                    background-color: #1F2937;
-                    border: 1px solid #374151;
+            card.setStyleSheet(f"""
+                QFrame#deviceCard {{
+                    background-color: {bg_color};
+                    border: 1px solid {border_color};
                     border-radius: 8px;
-                }
-                QFrame#deviceCard:hover {
-                    border-color: #3B82F6;
-                    background-color: #374151;
-                }
+                }}
+                QFrame#deviceCard:hover {{
+                    border-color: {sel_border};
+                    background-color: {bg_color};
+                }}
             """)
 
     def _on_background_clicked(self, event):
@@ -955,13 +1001,12 @@ class ModernDevicesTab(QWidget):
                 f"Failed to print barcodes: {str(e)}"
             )
     
-    def _export_devices(self):
-        """Export devices to PDF"""
+    def _export_to_csv(self):
+        """Export devices to CSV"""
         try:
+            import csv
             from PySide6.QtWidgets import QFileDialog
-            import os
             from datetime import datetime
-            from weasyprint import HTML
             
             # Get current devices based on filters
             devices = getattr(self, '_current_device_list', [])
@@ -976,86 +1021,247 @@ class ModernDevicesTab(QWidget):
             
             file_path, _ = QFileDialog.getSaveFileName(
                 self, 
-                self.lm.get("Common.export", "Export to PDF"), 
-                f"devices_export_{datetime.now().strftime('%Y%m%d')}.pdf", 
-                "PDF Files (*.pdf)"
+                self.lm.get("Common.export_csv", "Export CSV"), 
+                f"devices_export_{datetime.now().strftime('%Y%m%d')}.csv", 
+                "CSV Files (*.csv)"
             )
             
             if not file_path:
                 return
+                
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['ID', 'Barcode', 'Brand', 'Model', 'Color', 'IMEI', 'Serial', 'Status', 'Customer']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                
+                writer.writeheader()
+                for device in devices:
+                    writer.writerow({
+                        'ID': device.id,
+                        'Barcode': device.barcode or '',
+                        'Brand': device.brand or '',
+                        'Model': device.model or '',
+                        'Color': device.color or '',
+                        'IMEI': device.imei or '',
+                        'Serial': device.serial_number or '',
+                        'Status': device.status.upper(),
+                        'Customer': device.customer_name or ''
+                    })
+                    
+            MessageHandler.show_info(
+                self, 
+                self.lm.get("Common.success", "Success"), 
+                f"{self.lm.get('Common.export_success', 'Successfully exported')} {len(devices)} {self.lm.get('MainWindow.devices', 'devices')}."
+            )
+            
+        except Exception as e:
+            MessageHandler.show_error(
+                self, 
+                self.lm.get("Common.error", "Error"), 
+                f"{self.lm.get('Common.export_failed', 'Failed to export')}: {str(e)}"
+            )
 
-            # Generate HTML
-            html = """
-            <!DOCTYPE html>
+    def _export_to_pdf(self):
+        """Export devices to PDF report using WeasyPrint"""
+        try:
+            from PySide6.QtWidgets import QFileDialog
+            import os
+            import platform
+            from datetime import datetime
+            
+            # Get current devices based on filters
+            devices = getattr(self, '_current_device_list', [])
+            
+            if not devices:
+                MessageHandler.show_warning(
+                    self, 
+                    self.lm.get("Devices.no_devices", "No Devices"), 
+                    self.lm.get("Devices.no_devices_export", "No devices to export.")
+                )
+                return
+            
+            path, _ = QFileDialog.getSaveFileName(
+                self, 
+                self.lm.get("Common.export_pdf", "Save PDF"), 
+                f"devices_report_{datetime.now().strftime('%Y%m%d')}.pdf", 
+                "PDF Files (*.pdf)"
+            )
+            
+            if not path:
+                return
+            
+            # MacOS Fix for WeasyPrint
+            if platform.system() == 'Darwin':
+                os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = '/opt/homebrew/lib:/usr/local/lib:/usr/lib:' + os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
+                
+            from weasyprint import HTML, CSS
+            
+            # Use fonts that support Burmese
+            font_family = "'Myanmar Text', 'Myanmar MN', 'Noto Sans Myanmar', 'Pyidaungsu', sans-serif"
+            
+            html = f"""
             <html>
             <head>
                 <style>
-                    @page { size: A4 landscape; margin: 1cm; }
-                    body { font-family: sans-serif; }
-                    h1 { margin-bottom: 5px; }
-                    .meta { color: #666; font-size: 10pt; margin-bottom: 20px; }
-                    table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-                    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-                    th { background-color: #f0f0f0; font-weight: bold; }
-                    tr:nth-child(even) { background-color: #f9f9f9; }
+                    @page {{ size: A4 landscape; margin: 15mm; }}
+                    body {{ font-family: {font_family}; }}
+                    h1 {{ color: #2980B9; margin-bottom: 5px; }}
+                    .meta {{ font-size: 10pt; color: #7F8C8D; margin-bottom: 20px; }}
+                    
+                    /* Summary Boxes */
+                    .summary-container {{ display: flex; gap: 20px; margin-bottom: 20px; }}
+                    .summary-box {{ 
+                        border: 1px solid #BDC3C7; 
+                        padding: 10px; 
+                        width: 200px;
+                        background-color: #ECF0F1;
+                        border-radius: 4px;
+                    }}
+                    .summary-label {{ font-size: 9pt; color: #7F8C8D; }}
+                    .summary-value {{ font-size: 11pt; font-weight: bold; color: #2C3E50; }}
+                    
+                    /* Table */
+                    table {{ width: 100%; border-collapse: collapse; font-size: 9pt; }}
+                    th {{ 
+                        background-color: #3498DB; 
+                        color: white; 
+                        padding: 8px; 
+                        text-align: left; 
+                        border: 1px solid #2980B9;
+                    }}
+                    td {{ 
+                        padding: 6px; 
+                        border: 1px solid #BDC3C7; 
+                        color: #2C3E50;
+                    }}
+                    tr:nth-child(even) {{ background-color: #F8F9F9; }}
+                    
+                    /* Status Colors */
+                    .status-received {{ color: #4169E1; }}
+                    .status-diagnosed {{ color: #20B2AA; }}
+                    .status-repairing {{ color: #E67E22; }}
+                    .status-repaired {{ color: #BA55D3; }}
+                    .status-completed {{ color: #27AE60; font-weight: bold; }}
+                    .status-returned {{ color: #2C3E50; font-style: italic; }}
                 </style>
             </head>
             <body>
+                <h1>{self.lm.get("Devices.report_title", "DEVICES REPORT")}</h1>
+                <div class="meta">{self.lm.get("Common.generated", "Generated")}: {datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
             """
             
-            html += f"<h1>Device Inventory</h1>"
-            html += f"<div class='meta'>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Total Devices: {len(devices)}</div>"
-            
-            html += """
-            <table>
-                <thead>
-                    <tr>
-                        <th>Barcode</th>
-                        <th>Brand</th>
-                        <th>Model</th>
-                        <th>Color</th>
-                        <th>IMEI</th>
-                        <th>Serial</th>
-                        <th>Status</th>
-                        <th>Customer</th>
-                    </tr>
-                </thead>
-                <tbody>
-            """
-            
+            # Calculate Summary
+            status_counts = {}
             for d in devices:
+                status = d.status
+                status_counts[status] = status_counts.get(status, 0) + 1
+            
+            # Add Summary Section
+            html += f"""
+                <div class="summary-container">
+                    <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Devices.total_devices", "Total Devices")}</div>
+                        <div class="summary-value">{len(devices)}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Common.received", "Received")}</div>
+                        <div class="summary-value" style="color: #4169E1;">{status_counts.get('received', 0)}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Common.in_progress", "In Progress")}</div>
+                        <div class="summary-value" style="color: #E67E22;">
+                            {status_counts.get('diagnosed', 0) + status_counts.get('repairing', 0)}
+                        </div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Common.completed", "Completed")}</div>
+                        <div class="summary-value" style="color: #27AE60;">
+                            {status_counts.get('repaired', 0) + status_counts.get('completed', 0)}
+                        </div>
+                    </div>
+                </div>
+            """
+            
+            # Table Header
+            html += f"""
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{self.lm.get("Inventory.barcode", "Barcode")}</th>
+                            <th>{self.lm.get("Tickets.device_brand", "Brand")}</th>
+                            <th>{self.lm.get("Tickets.device_model", "Model")}</th>
+                            <th>{self.lm.get("Tickets.device_color", "Color")}</th>
+                            <th>{self.lm.get("Tickets.device_imei", "IMEI")}</th>
+                            <th>{self.lm.get("Tickets.device_serial", "Serial")}</th>
+                            <th>{self.lm.get("Tickets.status", "Status")}</th>
+                            <th>{self.lm.get("Tickets.customer", "Customer")}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
+            
+            # Table Rows
+            for d in devices:
+                status_text = self._get_localized_status(d.status).upper()
+                status_class = f"status-{d.status.lower()}"
+                
                 html += f"""
-                <tr>
-                    <td>{d.barcode or ''}</td>
-                    <td>{d.brand or ''}</td>
-                    <td>{d.model or ''}</td>
-                    <td>{d.color or ''}</td>
-                    <td>{d.imei or ''}</td>
-                    <td>{d.serial_number or ''}</td>
-                    <td>{d.status.upper()}</td>
-                    <td>{d.customer_name or ''}</td>
-                </tr>
+                    <tr>
+                        <td>{d.barcode or ''}</td>
+                        <td>{d.brand or ''}</td>
+                        <td>{d.model or ''}</td>
+                        <td>{d.color or ''}</td>
+                        <td>{d.imei or ''}</td>
+                        <td>{d.serial_number or ''}</td>
+                        <td class="{status_class}">{status_text}</td>
+                        <td>{d.customer_name or ''}</td>
+                    </tr>
                 """
                 
-            html += "</tbody></table></body></html>"
+            html += f"""
+                    </tbody>
+                </table>
+                <div style="margin-top: 20px; font-size: 8pt; color: #7F8C8D; border-top: 1px solid #BDC3C7; padding-top: 10px;">
+                    {self.lm.get("Common.confidential_notice", "Confidential - For Internal Use Only")}
+                </div>
+            </body>
+            </html>
+            """
             
-            HTML(string=html).write_pdf(file_path)
+            HTML(string=html).write_pdf(path)
             
+            # Try to open
+            try:
+                import subprocess
+                if platform.system() == 'Darwin':       # macOS
+                    subprocess.call(('open', path))
+                elif platform.system() == 'Windows':    # Windows
+                    os.startfile(path)
+                else:                                   # Linux
+                    subprocess.call(('xdg-open', path))
+            except:
+                pass
+
             MessageHandler.show_info(
                 self,
                 self.lm.get("Common.success", "Success"),
-                f"Exported {len(devices)} devices to {os.path.basename(file_path)}"
+                f"{self.lm.get('Common.export_success', 'Successfully exported')} {len(devices)} {self.lm.get('MainWindow.devices', 'devices')}."
             )
             
+        except ImportError:
+             MessageHandler.show_error(
+                self,
+                self.lm.get("Common.error", "Error"),
+                "WeasyPrint library not found. Please install: pip install weasyprint"
+            )
         except Exception as e:
             import traceback
             traceback.print_exc()
             MessageHandler.show_error(
                 self,
                 self.lm.get("Common.error", "Error"),
-                f"Failed to export devices: {str(e)}"
+                f"{self.lm.get('Common.export_failed', 'Failed to export to PDF')}: {str(e)}"
             )
-    
+
     def _on_device_changed(self, *args):
         """Handle device changes"""
         QTimer.singleShot(500, self._load_devices)

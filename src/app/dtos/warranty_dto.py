@@ -62,6 +62,11 @@ class WarrantyDTO:
         return {
             'warranty_id': self.id,
             'type': self.type,
+            'terms': self.terms,
             'status': self.status,
-            'target': f"{self.warrantyable_type}:{self.warrantyable_id}"
+            'warrantyable_type': self.warrantyable_type,
+            'warrantyable_id': self.warrantyable_id,
+            'supplier_id': self.supplier_id,
+            'start_date': self.start_date.isoformat() if hasattr(self.start_date, 'isoformat') else self.start_date,
+            'end_date': self.end_date.isoformat() if hasattr(self.end_date, 'isoformat') else self.end_date
         }

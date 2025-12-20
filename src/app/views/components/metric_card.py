@@ -19,10 +19,6 @@ class MetricCard(QFrame):
             QFrame#metricCard {{
                 background-color: {self.color};
                 border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#metricCard:hover {{
-                background-color: {self._adjust_color_brightness(self.color, 1.1)};
             }}
         """)
     
@@ -51,6 +47,7 @@ class MetricCard(QFrame):
         
         # Header: Icon + Label
         header = QHBoxLayout()
+        layout.addLayout(header) # Add to parent layout first
         header.setSpacing(8)
         header.setContentsMargins(0, 0, 0, 0)
         
@@ -60,16 +57,16 @@ class MetricCard(QFrame):
         header.addWidget(icon_label)
         
         # Label
-        label_widget = QLabel(label)
-        label_widget.setObjectName("metricLabel")
-        label_widget.setStyleSheet("font-size: 11px; color: rgba(255, 255, 255, 0.9); font-weight: bold; background: transparent; border: none;")
-        header.addWidget(label_widget)
+        self.label_label = QLabel(label)
+        self.label_label.setObjectName("metricLabel")
+        self.label_label.setStyleSheet("font-size: 11px; color: rgba(255, 255, 255, 0.9); font-weight: bold; background: transparent; border: none;")
+        header.addWidget(self.label_label)
         
         header.addStretch()
-        layout.addLayout(header)
         
         # Value and Growth on same line
         value_row = QHBoxLayout()
+        layout.addLayout(value_row) # Add to parent layout first
         value_row.setSpacing(8)
         value_row.setContentsMargins(0, 0, 0, 0)
         
@@ -95,8 +92,6 @@ class MetricCard(QFrame):
             
             self.growth_label.setStyleSheet(f"color: {growth_color}; font-weight: 700; font-size: 12px; background: transparent; border: none;")
             value_row.addWidget(self.growth_label)
-        
-        layout.addLayout(value_row)
             
     def update_value(self, value: str):
         """Update the metric value"""
@@ -116,3 +111,9 @@ class MetricCard(QFrame):
                 growth_color = "rgba(255, 255, 255, 0.9)"
             
             self.growth_label.setStyleSheet(f"color: {growth_color}; font-weight: 700; font-size: 12px; background: transparent; border: none;")
+    def update_label(self, label: str):
+        """Update the metric label"""
+        if hasattr(self, 'label_label'):
+            self.label_label.setText(label)
+        elif hasattr(self, 't_label'): # Fallback for other MetricCard implementations if mixed
+            self.t_label.setText(label)

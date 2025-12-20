@@ -62,7 +62,31 @@ class UpdateService(QObject):
         try:
             # Set User-Agent as required by GitHub API
             headers = {'User-Agent': 'MSA-Desktop-App'}
-            response = requests.get(UPDATE_CHECK_URL, headers=headers, timeout=10)
+            
+            # Handling SSL Certs in Frozen Application
+            verify_ssl = True
+            import sys, os
+            if getattr(sys, 'frozen', False):
+                # If frozen, look for certifi bundle or rely on system
+                # Sometimes PyInstaller misses the cacert.pem
+                # We can try to rely on requests' default which should use certifi
+                pass
+
+            try:
+                response = requests.get(UPDATE_CHECK_URL, headers=headers, timeout=10)
+            except requests.exceptions.SSLError:
+                print("SSL Error encountered, retrying without verification...")
+                response = requests.get(UPDATE_CHECK_URL, headers=headers, timeout=10, verify=False)
+            except requests.exceptions.ConnectionError as e:
+                # Catching the 10054 here
+                print(f"Connection error: {e}")
+                # Retry once without verify just in case it's a handshake issue interpreted as connection reset
+                # (unlikely for 10054 but possible if firewall interferes with SSL handshake)
+                try:
+                     response = requests.get(UPDATE_CHECK_URL, headers=headers, timeout=10, verify=False)
+                except:
+                    raise e
+
             
             if response.status_code == 200:
                 data = response.json()

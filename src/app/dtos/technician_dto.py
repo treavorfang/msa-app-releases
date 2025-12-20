@@ -47,5 +47,13 @@ class TechnicianDTO:
         return {
             'technician_id': self.id,
             'full_name': self.full_name,
-            'is_active': self.is_active
+            'email': self.email,
+            'phone': self.phone,
+            'address': self.address,
+            'specialization': self.specialization,
+            'certification': self.certification,
+            'salary': float(self.salary),
+            'commission_rate': float(self.commission_rate),
+            'is_active': self.is_active,
+            'joined_at': self.joined_at.isoformat() if hasattr(self.joined_at, 'isoformat') else self.joined_at
         }

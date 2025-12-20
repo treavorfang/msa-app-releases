@@ -2,11 +2,12 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                               QComboBox, QDateEdit, QTableWidget, QTableWidgetItem, 
                               QHeaderView, QLabel, QGroupBox, QTabWidget, QFrame,
-                              QScrollArea, QGridLayout, QMessageBox, QFileDialog)
+                              QScrollArea, QGridLayout, QMessageBox, QFileDialog, QLineEdit)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QCursor
 from datetime import datetime, timedelta
 from views.components.metric_card import MetricCard
+from views.components.new_dashboard_widgets import WaveChart
 import csv
 from utils.language_manager import language_manager
 from utils.currency_formatter import currency_formatter
@@ -21,7 +22,11 @@ class ReportsTab(QWidget):
         self.report_service = container.report_service
         self.lm = language_manager
         self.cf = currency_formatter
-        self.current_branch_id = None
+        
+        # Initialize branch from user OR default to 1 (Main Branch)
+        self.user = getattr(container, 'current_user', None)
+        self.current_branch_id = getattr(self.user, 'branch_id', 1) or 1
+        
         self._setup_ui()
         EventBus.subscribe(BranchContextChangedEvent, self._handle_branch_changed)
         
@@ -63,6 +68,8 @@ class ReportsTab(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        # Enable smooth scrolling
+        scroll.verticalScrollBar().setSingleStep(20)
         
         # Main container
         container = QWidget()
@@ -75,7 +82,7 @@ class ReportsTab(QWidget):
         
         # Title
         title = QLabel(self.lm.get("Reports.analytics_dashboard", "Analytics Dashboard"))
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setStyleSheet("font-size: 24px; font-weight: bold;") 
         header_layout.addWidget(title)
         
         header_layout.addStretch()
@@ -100,8 +107,8 @@ class ReportsTab(QWidget):
         
         # Refresh button
         refresh_btn = QPushButton(f"🔄 {self.lm.get('Common.refresh', 'Refresh')}")
+        refresh_btn.setProperty("type", "primary")
         refresh_btn.clicked.connect(self._refresh_analytics)
-        refresh_btn.setStyleSheet("padding: 6px 12px;")
         header_layout.addWidget(refresh_btn)
         
         main_layout.addLayout(header_layout)
@@ -166,12 +173,11 @@ class ReportsTab(QWidget):
             revenue_container = self._create_chart_container(self.lm.get("Reports.revenue_trend", "Revenue Trend"))
             revenue_layout = revenue_container.layout()
             
-            # Create matplotlib figure
-            self.revenue_figure = Figure(figsize=(10, 4), facecolor='none')
-            self.revenue_canvas = FigureCanvas(self.revenue_figure)
-            self.revenue_canvas.setStyleSheet("background-color: transparent;")
-            self.revenue_canvas.setMinimumHeight(300)
-            revenue_layout.addWidget(self.revenue_canvas)
+            # Use WaveChart instead of Matplotlib
+            self.wave_chart = WaveChart()
+            self.wave_chart.setMinimumHeight(300)
+            self.wave_chart.set_formatter(lambda x: self.cf.format(x))
+            revenue_layout.addWidget(self.wave_chart)
             left_column.addWidget(revenue_container)
             
             self.charts_enabled = True
@@ -192,7 +198,7 @@ class ReportsTab(QWidget):
             error_label.setAlignment(Qt.AlignCenter)
             error_layout.addWidget(error_label)
             
-            error_desc = QLabel(self.lm.get("Reports.matplotlib_required", "Matplotlib is required for visualizations.\\nInstall it with: pip install matplotlib"))
+            error_desc = QLabel(self.lm.get("Reports.matplotlib_required", "Matplotlib is required for visualizations.\nInstall it with: pip install matplotlib"))
             error_desc.setObjectName("metricLabel")
             error_desc.setAlignment(Qt.AlignCenter)
             error_layout.addWidget(error_desc)
@@ -437,28 +443,7 @@ class ReportsTab(QWidget):
         self._update_quick_stats(stats, status_dist)
     
     def _update_revenue_chart(self, trend_data):
-        """Update revenue trend chart with simple design"""
-        import matplotlib.pyplot as plt
-        from datetime import timedelta
-        
-        # Clear and setup chart
-        self.revenue_figure.clear()
-        ax = self.revenue_figure.add_subplot(111)
-        
-        # Make background transparent
-        self.revenue_figure.patch.set_alpha(0)
-        ax.patch.set_alpha(0)
-        
-        # Get theme-aware colors
-        from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QPalette
-        palette = QApplication.palette()
-        is_dark = palette.color(QPalette.ColorRole.Window).lightness() < 128
-        
-        text_color = '#9CA3AF' if is_dark else '#6B7280'
-        grid_color = '#374151' if is_dark else '#E5E7EB'
-        bg_color = '#1F2937' if is_dark else '#F9FAFB'
-        
+        """Update revenue trend chart using WaveChart"""
         # Convert to dictionary for easy lookup
         trend_map = {item['date']: item['revenue'] for item in trend_data}
         
@@ -501,39 +486,10 @@ class ReportsTab(QWidget):
             
             days = week_order
             revenues = [weekly_data[lbl] for lbl in days]
-        
-        # Plot line chart with red color like the modern dashboard
-        if revenues:
-            ax.plot(days, revenues, color='#EF4444', linewidth=2.5, marker='o', 
-                   markersize=4, markerfacecolor='#EF4444', markeredgecolor='#EF4444')
             
-            # Add average line (dotted)
-            avg_revenue = sum(revenues) / len(revenues) if revenues else 0
-            ax.axhline(y=avg_revenue, color='#EF4444', linestyle='--', 
-                      linewidth=1, alpha=0.5)
-        
-        # Styling - match modern dashboard
-        ax.set_facecolor(bg_color)
-        ax.set_ylim(bottom=0)
-        
-        # Remove top and right spines
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color(grid_color)
-        ax.spines['bottom'].set_color(grid_color)
-        
-        # Grid styling - match modern dashboard with dashed lines
-        ax.grid(True, alpha=0.3, color=grid_color, linestyle='--', linewidth=0.8)
-        ax.set_axisbelow(True)  # Grid behind data
-        
-        # Tick styling
-        ax.tick_params(colors=text_color, labelsize=9)
-        
-        # Format y-axis as currency
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: self.cf.format(x)))
-        
-        self.revenue_figure.tight_layout()
-        self.revenue_canvas.draw()
+        # Update WaveChart
+        if hasattr(self, 'wave_chart'):
+            self.wave_chart.set_data(revenues, days)
     
     def _calculate_growth(self, current, previous):
         """Calculate growth percentage"""
@@ -616,38 +572,125 @@ class ReportsTab(QWidget):
                 self._clear_layout(child.layout())
     
     def _create_performance_tab(self):
-        """Create performance analysis tab"""
-        # Main scroll area
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
+        """Create performance analysis tab with sidebar"""
+        main_container = QWidget()
+        layout = QHBoxLayout(main_container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         
-        # Main container
-        container = QWidget()
-        main_layout = QVBoxLayout(container)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(12, 12, 12, 12)
+        # 1. Sidebar for controls
+        self.perf_sidebar = self._create_performance_sidebar()
+        layout.addWidget(self.perf_sidebar)
         
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel(self.lm.get("Reports.technician_performance", "Technician Performance"))
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        main_layout.addLayout(header_layout)
+        # 2. Main content area
+        self.perf_content = self._create_performance_content_area()
+        layout.addWidget(self.perf_content, 1)
         
-        # Technician Performance Table
-        perf_card = QFrame()
-        perf_card.setObjectName("cardFrame")
-        perf_layout = QVBoxLayout(perf_card)
-        perf_layout.setSpacing(8)
-        perf_layout.setContentsMargins(12, 12, 12, 12)
+        # Initial load
+        self._load_performance_data()
         
-        perf_title = QLabel(self.lm.get("Reports.technician_performance", "Technician Performance"))
-        perf_title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        perf_layout.addWidget(perf_title)
+        return main_container
+
+    def _create_performance_sidebar(self):
+        """Create the left sidebar for performance filters"""
+        sidebar = QFrame()
+        sidebar.setFixedWidth(280)
+        sidebar.setObjectName("reportsInnerSidebar")
+        
+        layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(16, 24, 16, 24)
+        layout.setSpacing(20)
+        
+        # Section: Search
+        search_section = QVBoxLayout()
+        search_section.setSpacing(8)
+        search_section.addWidget(QLabel(self.lm.get('Common.search', 'SEARCH').upper()))
+        self.perf_search = QLineEdit()
+        self.perf_search.setPlaceholderText(self.lm.get("Reports.search_technician", "Search technician..."))
+        self.perf_search.textChanged.connect(self._load_performance_data)
+        search_section.addWidget(self.perf_search)
+        layout.addLayout(search_section)
+        
+        # Section: Date Range
+        date_section = QVBoxLayout()
+        date_section.setSpacing(8)
+        date_section.addWidget(QLabel(self.lm.get('Reports.date_range', 'DATE RANGE').upper()))
+        
+        self.perf_start_date = QDateEdit()
+        self.perf_start_date.setDate(QDate.currentDate().addDays(-30))
+        self.perf_start_date.setCalendarPopup(True)
+        self.perf_start_date.dateChanged.connect(self._load_performance_data)
+        date_section.addWidget(QLabel("FROM"))
+        date_section.addWidget(self.perf_start_date)
+        
+        self.perf_end_date = QDateEdit()
+        self.perf_end_date.setDate(QDate.currentDate())
+        self.perf_end_date.setCalendarPopup(True)
+        self.perf_end_date.dateChanged.connect(self._load_performance_data)
+        date_section.addWidget(QLabel("TO"))
+        date_section.addWidget(self.perf_end_date)
+        
+        layout.addLayout(date_section)
+        
+        layout.addStretch()
+        
+        # Section: Actions
+        action_layout = QVBoxLayout()
+        action_layout.setSpacing(10)
+        
+        refresh_btn = QPushButton(f"🔄 {self.lm.get('Common.refresh', 'Refresh Data')}")
+        refresh_btn.setProperty("type", "primary") # Use primary styling
+        refresh_btn.clicked.connect(self._load_performance_data)
+        action_layout.addWidget(refresh_btn)
+        
+        layout.addLayout(action_layout)
+        
+        return sidebar
+
+    def _create_performance_content_area(self):
+        """Create the main content area for technician performance"""
+        content = QFrame()
+        content.setObjectName("reportsContentArea")
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
+        
+        # Team Summary Row
+        self.perf_summary_layout = QHBoxLayout()
+        self.perf_summary_layout.setSpacing(16)
+        
+        self.perf_summary_cards = {}
+        metrics = [
+            ("total_completed", "✅", "0", self.lm.get("Reports.total_completed", "Total Completed"), "#10B981"),
+            ("team_revenue", "💰", self.cf.format(0), self.lm.get("Reports.team_revenue", "Team Revenue"), "#3B82F6"),
+            ("avg_rating", "⭐", "5.0", self.lm.get("Reports.avg_rating", "Avg Rating"), "#F59E0B")
+        ]
+        
+        for key, icon, value, label, color in metrics:
+            card = MetricCard(icon, value, label, None, color)
+            card.setFixedHeight(100)
+            self.perf_summary_cards[key] = card
+            self.perf_summary_layout.addWidget(card)
+        
+        layout.addLayout(self.perf_summary_layout)
+        
+        # Performance Table Container
+        perf_container = QFrame()
+        perf_container.setObjectName("reportTableContainer")
+        
+        perf_layout = QVBoxLayout(perf_container)
+        perf_layout.setContentsMargins(16, 16, 16, 16)
+        perf_layout.setSpacing(12)
+        
+        title_row = QHBoxLayout()
+        perf_title = QLabel(self.lm.get("Reports.performance_details", "Performance Details"))
+        perf_title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title_row.addWidget(perf_title)
+        title_row.addStretch()
+        perf_layout.addLayout(title_row)
         
         self.perf_table = QTableWidget()
+        self.perf_table.setObjectName("reportTable")
         self.perf_table.setColumnCount(6)
         self.perf_table.setHorizontalHeaderLabels([
             self.lm.get("Reports.technician", "Technician"),
@@ -660,93 +703,64 @@ class ReportsTab(QWidget):
         self.perf_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.perf_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.perf_table.setAlternatingRowColors(True)
-        self.perf_table.setObjectName("reportTable")
         
         perf_layout.addWidget(self.perf_table)
-        main_layout.addWidget(perf_card)
+        layout.addWidget(perf_container, 1)
         
-        main_layout.addStretch()
-        
-        scroll.setWidget(container)
-        
-        # Load performance data
-        self._load_performance_data()
-        
-        return scroll
-    
+        return content
+
     def _load_performance_data(self):
-        """Load technician performance data"""
+        """Load technician performance data with filtering and summary metrics"""
         try:
+            start_date = self.perf_start_date.date().toPython()
+            end_date = self.perf_end_date.date().toPython()
+            search_text = self.perf_search.text().lower()
+            
             tech_performance = self.ticket_service.get_technician_performance(
-                datetime.now().date() - timedelta(days=30),
-                datetime.now().date(),
-                branch_id=self.current_branch_id
+                start_date, end_date, branch_id=self.current_branch_id
             )
             
-            self.perf_table.setRowCount(len(tech_performance))
+            # Filter by search
+            filtered_data = [
+                tech for tech in tech_performance 
+                if search_text in tech.get('technician_name', '').lower()
+            ]
             
-            for row, tech in enumerate(tech_performance):
-                # Technician name
+            self.perf_table.setRowCount(len(filtered_data))
+            
+            total_completed = 0
+            total_revenue = 0
+            
+            for row, tech in enumerate(filtered_data):
                 self.perf_table.setItem(row, 0, QTableWidgetItem(tech.get('technician_name', 'Unknown')))
                 
-                # Tickets completed
-                self.perf_table.setItem(row, 1, QTableWidgetItem(str(tech.get('tickets_completed', 0))))
+                completed = tech.get('tickets_completed', 0)
+                total_completed += completed
+                self.perf_table.setItem(row, 1, QTableWidgetItem(str(completed)))
                 
-                # Avg time
                 avg_time = tech.get('avg_completion_time', 0)
                 self.perf_table.setItem(row, 2, QTableWidgetItem(f"{avg_time:.1f}"))
                 
-                # Revenue
                 revenue = tech.get('total_revenue', 0)
+                total_revenue += float(revenue)
                 self.perf_table.setItem(row, 3, QTableWidgetItem(self.cf.format(revenue)))
                 
-                # Success rate
                 success_rate = tech.get('success_rate', 0)
                 self.perf_table.setItem(row, 4, QTableWidgetItem(f"{success_rate:.1f}%"))
                 
-                # Rating (placeholder)
                 self.perf_table.setItem(row, 5, QTableWidgetItem("⭐⭐⭐⭐⭐"))
                 
+            # Update summary cards
+            self.perf_summary_cards["total_completed"].update_value(str(total_completed))
+            self.perf_summary_cards["team_revenue"].update_value(self.cf.format(total_revenue))
+            self.perf_summary_cards["avg_rating"].update_value("5.0") # Placeholder
+            
         except Exception as e:
             print(f"Error loading performance data: {e}")
     
-    def _create_reports_tab(self):
-        """Create reports tab with clean design"""
-        # Main scroll area
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        
-        # Main container
-        container = QWidget()
-        main_layout = QVBoxLayout(container)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel(self.lm.get("Reports.reports", "Reports"))
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        main_layout.addLayout(header_layout)
-        
-        # Report controls card
-        controls_card = QFrame()
-        controls_card.setObjectName("cardFrame")
-        controls_layout = QVBoxLayout(controls_card)
-        controls_layout.setSpacing(12)
-        controls_layout.setContentsMargins(12, 12, 12, 12)
-        
-        # Report type selection
-        type_layout = QHBoxLayout()
-        type_label = QLabel(f"{self.lm.get('Reports.report_type', 'Report Type')}:")
-        type_label.setObjectName("metricLabel")
-        type_label.setStyleSheet("font-weight: 600;")
-        type_layout.addWidget(type_label)
-        
-        self.report_type = QComboBox()
-        self.report_type.addItems([
+    def _get_report_types(self):
+        """Helper to get translated report types"""
+        return [
             # Phase 1 Reports
             self.lm.get("Reports.daily_ticket_summary", "Daily Ticket Summary"),
             self.lm.get("Reports.technician_performance", "Technician Performance"),
@@ -759,119 +773,164 @@ class ReportsTab(QWidget):
             self.lm.get("Reports.inventory_movement", "Inventory Movement"),
             self.lm.get("Reports.supplier_performance", "Supplier Performance"),
             self.lm.get("Reports.outstanding_payments", "Outstanding Payments")
-        ])
+        ]
+
+    def _create_reports_tab(self):
+        """Create enhanced reports tab with sidebar and summary metrics"""
+        main_container = QWidget()
+        layout = QHBoxLayout(main_container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # 1. Sidebar for controls
+        self.sidebar_frame = self._create_report_sidebar()
+        layout.addWidget(self.sidebar_frame)
+        
+        # 2. Main content area
+        self.content_area = self._create_report_content_area()
+        layout.addWidget(self.content_area, 1) # Give content area more space
+        
+        # Initialize headers
+        self._on_report_type_changed(0)
+        
+        return main_container
+
+    def _create_report_sidebar(self):
+        """Create the left sidebar for report controls"""
+        sidebar = QFrame()
+        sidebar.setFixedWidth(280)
+        sidebar.setObjectName("reportsInnerSidebar")
+        
+        layout = QVBoxLayout(sidebar)
+        layout.setContentsMargins(16, 24, 16, 24)
+        layout.setSpacing(20)
+        
+        # Section: Report Type
+        type_section = QVBoxLayout()
+        type_section.setSpacing(8)
+        type_section.addWidget(QLabel(self.lm.get('Reports.report_type', 'REPORT TYPE').upper()))
+        
+        self.report_type = QComboBox()
+        self.report_type.addItems(self._get_report_types())
         self.report_type.currentIndexChanged.connect(self._on_report_type_changed)
-        type_layout.addWidget(self.report_type, 1)
-        controls_layout.addLayout(type_layout)
+        type_section.addWidget(self.report_type)
+        layout.addLayout(type_section)
         
-        # Date range selection
-        date_layout = QHBoxLayout()
-        date_label = QLabel(f"{self.lm.get('Reports.date_range', 'Date Range')}:")
-        date_label.setObjectName("metricLabel")
-        date_label.setStyleSheet("font-weight: 600;")
-        date_layout.addWidget(date_label)
+        # Section: Date Range
+        date_section = QVBoxLayout()
+        date_section.setSpacing(8)
+        date_section.addWidget(QLabel(self.lm.get('Reports.date_range', 'DATE RANGE').upper()))
         
+        range_layout = QVBoxLayout()
+        range_layout.setSpacing(10)
+        
+        start_group = QVBoxLayout()
+        start_group.setSpacing(4)
+        start_group.addWidget(QLabel(self.lm.get("Reports.from", "From")))
         self.start_date = QDateEdit()
         self.start_date.setDate(QDate.currentDate().addDays(-7))
         self.start_date.setCalendarPopup(True)
-        date_layout.addWidget(self.start_date)
+        start_group.addWidget(self.start_date)
+        range_layout.addLayout(start_group)
         
-        date_layout.addWidget(QLabel(self.lm.get("Reports.to", "to")))
-        
+        end_group = QVBoxLayout()
+        end_group.setSpacing(4)
+        end_group.addWidget(QLabel(self.lm.get("Reports.to", "To")))
         self.end_date = QDateEdit()
         self.end_date.setDate(QDate.currentDate())
         self.end_date.setCalendarPopup(True)
-        date_layout.addWidget(self.end_date)
+        end_group.addWidget(self.end_date)
+        range_layout.addLayout(end_group)
         
-        date_layout.addStretch()
-        controls_layout.addLayout(date_layout)
+        date_section.addLayout(range_layout)
+        layout.addLayout(date_section)
         
-        # Action buttons
-        btn_layout = QHBoxLayout()
+        layout.addStretch()
         
-        self.generate_btn = QPushButton(f"📊 {self.lm.get('Reports.generate_report', 'Generate Report')}")
-        self.generate_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3B82F6;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
-        """)
+        # Section: Actions
+        action_layout = QVBoxLayout()
+        action_layout.setSpacing(10)
+        
+        self.generate_btn = QPushButton(f"⚡ {self.lm.get('Reports.generate', 'Generate Report')}")
+        self.generate_btn.setProperty("type", "primary")
         self.generate_btn.clicked.connect(self._generate_report)
-        btn_layout.addWidget(self.generate_btn)
+        action_layout.addWidget(self.generate_btn)
+        
+        export_row = QHBoxLayout()
+        export_row.setSpacing(8)
         
         self.export_pdf_btn = QPushButton(f"📄 {self.lm.get('Reports.export_pdf', 'Export PDF')}")
-        self.export_pdf_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #EF4444;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #DC2626;
-            }
-        """)
+        self.export_pdf_btn.setFixedHeight(40)
+        self.export_pdf_btn.setProperty("type", "danger")
         self.export_pdf_btn.clicked.connect(self._export_pdf)
-        btn_layout.addWidget(self.export_pdf_btn)
+        export_row.addWidget(self.export_pdf_btn)
         
         self.export_csv_btn = QPushButton(f"📊 {self.lm.get('Reports.export_csv', 'Export CSV')}")
-        self.export_csv_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #10B981;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-            }
-        """)
+        self.export_csv_btn.setFixedHeight(40)
+        self.export_csv_btn.setProperty("type", "success")
         self.export_csv_btn.clicked.connect(self._export_csv)
-        btn_layout.addWidget(self.export_csv_btn)
+        export_row.addWidget(self.export_csv_btn)
         
-        btn_layout.addStretch()
-        controls_layout.addLayout(btn_layout)
+        action_layout.addLayout(export_row)
+        layout.addLayout(action_layout)
         
-        main_layout.addWidget(controls_card)
+        return sidebar
+
+    def _create_report_content_area(self):
+        """Create the main content area for report visualization"""
+        content = QFrame()
+        content.setObjectName("reportsContentArea")
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
         
-        # Report display card
-        report_card = QFrame()
-        report_card.setObjectName("cardFrame")
-        report_layout = QVBoxLayout(report_card)
-        report_layout.setSpacing(8)
-        report_layout.setContentsMargins(12, 12, 12, 12)
+        # Summary Row (Key Metrics)
+        self.report_summary_layout = QHBoxLayout()
+        self.report_summary_layout.setSpacing(16)
         
-        # Title
-        report_title = QLabel(self.lm.get("Reports.report_preview", "Report Preview"))
-        report_title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        report_layout.addWidget(report_title)
+        # We'll use MetricCard from components/metric_card.py
+        self.summary_cards = {}
+        metrics = [
+            ("total_count", "📋", "0", self.lm.get("Reports.total_items", "Total Items"), "#3B82F6"),
+            ("total_revenue", "💰", self.cf.format(0), self.lm.get("Reports.revenue", "Revenue"), "#10B981"),
+            ("avg_value", "📈", self.cf.format(0), self.lm.get("Reports.avg_value", "Avg Value"), "#8B5CF6")
+        ]
         
-        # Table
+        for key, icon, value, label, color in metrics:
+            card = MetricCard(icon, value, label, None, color)
+            card.setFixedHeight(100)
+            self.summary_cards[key] = card
+            self.report_summary_layout.addWidget(card)
+        
+        layout.addLayout(self.report_summary_layout)
+        
+        # Table Container
+        table_container = QFrame()
+        table_container.setObjectName("reportTableContainer")
+        
+        table_layout = QVBoxLayout(table_container)
+        table_layout.setContentsMargins(16, 16, 16, 16)
+        table_layout.setSpacing(12)
+        
+        title_row = QHBoxLayout()
+        self.report_title = QLabel(self.lm.get("Reports.report_preview", "Report Preview"))
+        self.report_title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title_row.addWidget(self.report_title)
+        title_row.addStretch()
+        table_layout.addLayout(title_row)
+        
         self.report_display = QTableWidget()
+        self.report_display.setObjectName("reportTable")
         self.report_display.setColumnCount(6)
         self.report_display.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.report_display.setEditTriggers(QTableWidget.NoEditTriggers)
         self.report_display.setAlternatingRowColors(True)
-        self.report_display.setObjectName("reportTable")
         
-        # Initialize with first report type headers
-        self._on_report_type_changed(0)
+        table_layout.addWidget(self.report_display)
+        layout.addWidget(table_container, 1)
         
-        report_layout.addWidget(self.report_display)
-        main_layout.addWidget(report_card)
-        
-        main_layout.addStretch()
-        
-        scroll.setWidget(container)
-        return scroll
+        return content
+
     
     def _on_report_type_changed(self, index):
         """Handle report type change"""
@@ -963,6 +1022,37 @@ class ReportsTab(QWidget):
         self.report_display.setColumnCount(len(headers))
         self.report_display.setHorizontalHeaderLabels(headers)
     
+    def _update_report_summary(self, data, count_label=None, revenue_label=None, avg_label=None):
+        """Update summary cards based on report data"""
+        if not data:
+            self.summary_cards["total_count"].update_value("0")
+            self.summary_cards["total_revenue"].update_value(self.cf.format(0))
+            self.summary_cards["avg_value"].update_value(self.cf.format(0))
+            return
+
+        # Labels
+        if count_label: self.summary_cards["total_count"].update_label(count_label)
+        if revenue_label: self.summary_cards["total_revenue"].update_label(revenue_label)
+        if avg_label: self.summary_cards["avg_value"].update_label(avg_label)
+
+        # Detect data structure and calculate
+        total_items = len(data)
+        total_revenue = 0
+        
+        # Try to find revenue fields
+        rev_fields = ['total_revenue', 'total_amount', 'total_spent', 'revenue', 'movement_value', 'amount_due']
+        for item in data:
+            for field in rev_fields:
+                if field in item:
+                    total_revenue += float(item[field] or 0)
+                    break
+        
+        avg_revenue = total_revenue / total_items if total_items > 0 else 0
+        
+        self.summary_cards["total_count"].update_value(str(total_items))
+        self.summary_cards["total_revenue"].update_value(self.cf.format(total_revenue))
+        self.summary_cards["avg_value"].update_value(self.cf.format(avg_revenue))
+
     def _generate_report(self):
         """Generate the selected report with real data"""
         report_type = self.report_type.currentText()
@@ -993,27 +1083,31 @@ class ReportsTab(QWidget):
             elif report_type == self.lm.get("Reports.outstanding_payments", "Outstanding Payments"):
                 self._display_outstanding_payments()
         except Exception as e:
-            QMessageBox.critical(self, self.lm.get("Common.error", "Error"), f"Failed to generate report:\\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, self.lm.get("Common.error", "Error"), f"Failed to generate report:\n{str(e)}")
     
     def _display_daily_ticket_summary(self, start_date, end_date):
         """Display daily ticket summary report"""
         data = self.report_service.get_daily_ticket_summary(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="DAYS", revenue_label="TOTAL REVENUE", avg_label="AVG REVENUE/DAY")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['date']))
             self.report_display.setItem(row, 1, QTableWidgetItem(str(item['new_tickets'])))
             self.report_display.setItem(row, 2, QTableWidgetItem(str(item['completed'])))
             self.report_display.setItem(row, 3, QTableWidgetItem(str(item['in_progress'])))
             self.report_display.setItem(row, 4, QTableWidgetItem(self.cf.format(item['total_revenue'])))
-            self.report_display.setItem(row, 5, QTableWidgetItem(str(item['parts_used'])))    
+            self.report_display.setItem(row, 5, QTableWidgetItem(str(item['parts_used'])))
     def _display_technician_performance(self, start_date, end_date):
         """Display technician performance report"""
         data = self.report_service.get_technician_performance(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="TECHNICIANS", revenue_label="TOTAL REVENUE", avg_label="AVG REVENUE/TECH")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['technician_name']))
             self.report_display.setItem(row, 1, QTableWidgetItem(str(item['total_tickets'])))
@@ -1040,6 +1134,7 @@ class ReportsTab(QWidget):
         ]
         
         self.report_display.setRowCount(len(summary_items))
+        self._update_report_summary([data], count_label="TICKETS", revenue_label="REVENUE", avg_label="AVG REVENUE")
         
         for row, (metric, value) in enumerate(summary_items):
             self.report_display.setItem(row, 0, QTableWidgetItem(metric))
@@ -1050,7 +1145,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_invoice_report(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="INVOICES", revenue_label="TOTAL AMOUNT", avg_label="AVG INVOICE")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['invoice_number']))
             self.report_display.setItem(row, 1, QTableWidgetItem(item['customer_name']))
@@ -1064,7 +1160,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_stock_level_report(branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="PARTS", revenue_label="INVENTORY VALUE", avg_label="AVG PART VALUE")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['sku']))
             self.report_display.setItem(row, 1, QTableWidgetItem(item['name']))
@@ -1078,7 +1175,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_customer_activity(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="CUSTOMERS", revenue_label="TOTAL SPENT", avg_label="AVG SPENT/CUST")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['customer_name']))
             self.report_display.setItem(row, 1, QTableWidgetItem(str(item['total_tickets'])))
@@ -1092,7 +1190,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_work_log_summary(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="TECHNICIANS", revenue_label="BILLABLE HOURS", avg_label="EFFICIENCY")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['technician_name']))
             self.report_display.setItem(row, 1, QTableWidgetItem(str(item['sessions'])))
@@ -1106,7 +1205,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_inventory_movement(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="PARTS MOVED", revenue_label="MOVEMENT VALUE", avg_label="AVG MVMT VALUE")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['part_name']))
             self.report_display.setItem(row, 1, QTableWidgetItem(str(item['stock_in'])))
@@ -1120,7 +1220,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_supplier_performance(start_date, end_date, branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="SUPPLIERS", revenue_label="ORDER VALUE", avg_label="AVG ORDER VALUE")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['supplier_name']))
             self.report_display.setItem(row, 1, QTableWidgetItem(str(item['total_orders'])))
@@ -1134,7 +1235,8 @@ class ReportsTab(QWidget):
         data = self.report_service.get_outstanding_payments(branch_id=self.current_branch_id)
         
         self.report_display.setRowCount(len(data))
-        
+        self._update_report_summary(data, count_label="UNPAID INVOICES", revenue_label="TOTAL OUTSTANDING", avg_label="AVG OUTSTANDING")
+
         for row, item in enumerate(data):
             self.report_display.setItem(row, 0, QTableWidgetItem(item['invoice_number']))
             self.report_display.setItem(row, 1, QTableWidgetItem(item['customer_name']))

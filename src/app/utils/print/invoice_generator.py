@@ -372,7 +372,7 @@ class InvoiceGenerator:
             </table>
             
             <br>
-             <div class="sect-head">{self.lm.get('TicketReceipt.terms_conditions_caps', 'TERMS & CONDITIONS')}:</div>
+             <div class="sect-head">""" + self.lm.get('TicketReceipt.terms_conditions_caps', 'TERMS & CONDITIONS') + """:</div>
         """
         
         if self.settings and self.settings.invoice_terms:

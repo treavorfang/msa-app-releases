@@ -44,7 +44,11 @@ class PaymentDTO:
         """Convert to dictionary for audit logging."""
         return {
             'payment_id': self.id,
-            'amount': float(self.amount),
             'invoice_id': self.invoice_id,
-            'payment_method': self.payment_method
+            'amount': float(self.amount),
+            'payment_method': self.payment_method,
+            'transaction_id': self.transaction_id,
+            'notes': self.notes,
+            'received_by': self.received_by,
+            'paid_at': self.paid_at.isoformat() if hasattr(self.paid_at, 'isoformat') else self.paid_at
         }

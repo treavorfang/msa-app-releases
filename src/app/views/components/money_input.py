@@ -14,6 +14,8 @@ class MoneyInput(QLineEdit):
     def __init__(self, parent=None, default_value=0.0):
         super().__init__(parent)
         self.setAlignment(Qt.AlignRight)
+        self.symbol = ""
+        self.symbol_position = "before" # 'before' or 'after'
         
         # Initial setup
         self.setValue(default_value)
@@ -22,6 +24,13 @@ class MoneyInput(QLineEdit):
         self.editingFinished.connect(self._on_editing_finished)
         
         self.setPlaceholderText("0.00")
+
+    def set_currency(self, symbol: str, position: str = "before"):
+        """Configure currency symbol and position."""
+        self.symbol = symbol
+        self.symbol_position = position
+        # Refresh display
+        self.setValue(self.value())
 
     def value(self) -> float:
         """Returns the float value of the current text."""
@@ -44,7 +53,19 @@ class MoneyInput(QLineEdit):
             val = float(val)
         except (ValueError, TypeError):
             val = 0.0
-        self.setText(f"{val:,.2f}")
+            
+        formatted = f"{val:,.2f}"
+        if self.symbol:
+            if self.symbol_position == "before":
+                self.setText(f"{self.symbol} {formatted}")
+            else:
+                self.setText(f"{formatted} {self.symbol}")
+        else:
+            self.setText(formatted)
+
+    def set_value(self, val: float):
+        """Alias for setValue for compatibility."""
+        self.setValue(val)
 
     def _on_text_edited(self, text):
         """Format text with commas as user types, preserving cursor position."""
@@ -78,7 +99,9 @@ class MoneyInput(QLineEdit):
                 else:
                     formatted_whole = "0" # Or empty string if typing ".5" -> "0.5"
                     # But if user types ".", clean_text is ".", whole="", decimal=""
-                    if text.startswith('.'): formatted_whole = "0"
+                    if text.startswith('.') or (self.symbol and self.symbol in text[:text.find('.')]): 
+                        pass # complicated check? if original had . just assume 0.
+                        formatted_whole = "0"
                 
                 new_text = f"{formatted_whole}.{decimal}"
             else:
@@ -90,6 +113,13 @@ class MoneyInput(QLineEdit):
             
             if is_negative:
                 new_text = "-" + new_text
+            
+            # Apply symbol
+            if self.symbol:
+                if self.symbol_position == "before":
+                    new_text = f"{self.symbol} {new_text}"
+                else:
+                    new_text = f"{new_text} {self.symbol}"
                 
             # If the original input was just garbage that got cleaned to empty, revert?
             # No, assume strict filtering.
@@ -103,22 +133,41 @@ class MoneyInput(QLineEdit):
                 self.blockSignals(False)
                 
                 # Restore cursor position
-                # Scan new_text and find position after 'significant_chars_before' significant chars
                 new_cursor = 0
                 count = 0
                 for char in new_text:
+                    if count == significant_chars_before:
+                        # Special case: if we are strictly at the boundary of sig chars,
+                        # but there are non-sig chars (like ' ' or symbol) immediately following?
+                        # Usually standard strict counting works because we scan from left.
+                        break
+                        
                     new_cursor += 1
                     if char in "0123456789.-":
                         count += 1
-                    if count == significant_chars_before:
-                        break
                 
-                # Correction for trailing formatting chars logic
-                # If we just typed a digit and it caused a comma to appear BEFORE it, count handles it?
-                # User types '1000', cursor after last 0. Sig chars = 4.
-                # New text '1,000'. 
-                # '1' (1), ',' (skip), '0' (2), '0' (3), '0' (4).
-                # Cursor after last 0. Correct.
+                # If we ended exactly at the end of sig chars, new_cursor is positioned there.
+                # If sig chars was 0 (start), new_cursor is usually 0.
+                # If symbol is 'before', e.g. "$ 100".
+                # Sig 0. Loop: new_cursor starts 0. char '$' (no match). cursor 1. char ' ' (no match). cursor 2. char '1'.
+                # Wait, if sig=0, `count` starts 0. condition `count == sig` is True immediately!
+                # So if loop logic check is at START of loop:
+                # Loop:
+                #   if count == sig: break -> breaks at 0. new_cursor = 0.
+                # This positions cursor BEFORE the symbol. "$ 100" -> cursor at |$ 100.
+                
+                # If I want cursor AFTER symbol if I type 1st digit?
+                # User types '1' into empty. Text "$ 1".
+                # Cursor was at 1 (after '1'). Sig chars = 1.
+                # Loop: 
+                #   Start. count=0. != 1.
+                #   '$': cursor=1.
+                #   ' ': cursor=2.
+                #   '1': count=1.
+                #   Next iter: count==1 -> break. cursor=2.
+                #   Cursor at "$ 1|". Correct.
+                
+                # This should be fine.
                 
                 self.setCursorPosition(new_cursor)
         
@@ -129,5 +178,4 @@ class MoneyInput(QLineEdit):
 
     def _on_editing_finished(self):
         """Format strictly on blur."""
-        val = self.value()
-        self.setText(f"{val:,.2f}")
+        self.setValue(self.value())

@@ -63,6 +63,17 @@ class SupplierInvoiceDTO:
         return {
             'invoice_id': self.id,
             'invoice_number': self.invoice_number,
+            'purchase_order_id': self.purchase_order_id,
+            'subtotal': float(self.subtotal),
+            'discount': float(self.discount),
+            'shipping_fee': float(self.shipping_fee),
             'total_amount': float(self.total_amount),
-            'status': self.status
+            'paid_amount': float(self.paid_amount),
+            'outstanding_amount': float(self.outstanding_amount),
+            'status': self.status,
+            'notes': self.notes,
+            'created_by': self.created_by,
+            'invoice_date': self.invoice_date.isoformat() if hasattr(self.invoice_date, 'isoformat') else self.invoice_date,
+            'due_date': self.due_date.isoformat() if hasattr(self.due_date, 'isoformat') else self.due_date,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at
         }

@@ -60,6 +60,12 @@ class SupplierPaymentDTO:
         """Convert to dictionary for audit logging."""
         return {
             'payment_id': self.id,
+            'invoice_id': self.invoice_id,
             'amount': float(self.amount),
-            'invoice_number': self.invoice_number
+            'payment_method': self.payment_method,
+            'reference_number': self.reference_number,
+            'notes': self.notes,
+            'created_by': self.created_by,
+            'payment_date': self.payment_date.isoformat() if hasattr(self.payment_date, 'isoformat') else self.payment_date,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at
         }

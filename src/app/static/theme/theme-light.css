@@ -115,6 +115,26 @@ QPushButton[type="primary"]:hover {
     background-color: #2980b9;
 }
 
+QPushButton[type="success"] {
+    background-color: #10B981;
+    border: 1px solid #059669;
+    color: white;
+}
+
+QPushButton[type="success"]:hover {
+    background-color: #059669;
+}
+
+QPushButton[type="danger"] {
+    background-color: #EF4444;
+    border: 1px solid #DC2626;
+    color: white;
+}
+
+QPushButton[type="danger"]:hover {
+    background-color: #DC2626;
+}
+
 /* ================== Input Fields ================== */
 QLineEdit,
 QComboBox,
@@ -385,4 +405,42 @@ QFrame#chartCard {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     padding: 20px;
+}
+
+/* ================== Reports Tab Redesign ================== */
+QFrame#reportsInnerSidebar {
+    background-color: #f3f4f6;
+    border-right: 1px solid #e5e7eb;
+}
+
+QFrame#reportsContentArea {
+    background-color: #ffffff;
+}
+
+QTableWidget#reportTable {
+    background-color: transparent;
+    border: none;
+    gridline-color: #f3f4f6;
+    color: #374151;
+}
+
+QTableWidget#reportTable::item {
+    padding: 8px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+QTableWidget#reportTable QHeaderView::section {
+    background-color: #f9fafb;
+    color: #6b7280;
+    padding: 10px;
+    border: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 11px;
+}
+
+QFrame#reportTableContainer {
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
 }

@@ -1,13 +1,29 @@
 import os, sys
-sys.path.append(os.path.abspath('src'))
-from app.core.dependency_container import DependencyContainer
-from app.views.financial.financial_tab import FinancialTab
+from unittest.mock import MagicMock
+sys.path.append(os.path.abspath('src/app'))
+from core.dependency_container import DependencyContainer
+from views.financial.modern_financial_tab import ModernFinancialTab
+from PySide6.QtWidgets import QApplication
 
-container = DependencyContainer()
-user = None
+# Create QApplication
+app = QApplication.instance() or QApplication(sys.argv)
+
+from types import SimpleNamespace
+
+# Create mock container
+container = SimpleNamespace()
+container.financial_service = MagicMock()
+container.financial_service.get_dashboard_summary.return_value = {
+    'total_income': 1000.0, 'total_expense': 500.0, 'net_balance': 500.0
+}
+container.financial_service.get_expense_breakdown.return_value = {}
+container.financial_service.get_income_breakdown.return_value = {}
+container.financial_service.get_recent_transactions.return_value = []
+
+user = MagicMock()
 try:
-    tab = FinancialTab(container, user)
-    print('FinancialTab imported and instantiated successfully')
+    tab = ModernFinancialTab(container)
+    print('ModernFinancialTab imported and instantiated successfully')
 except Exception as e:
     import traceback
     print('Error during FinancialTab import:', e)

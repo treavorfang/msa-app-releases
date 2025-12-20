@@ -61,6 +61,9 @@ class RepairPartDTO:
             'repair_part_id': self.id,
             'ticket_id': self.ticket_id,
             'part_id': self.part_id,
+            'technician_id': self.technician_id,
             'quantity': self.quantity,
-            'part_name': self.part_name
+            'warranty_terms': self.warranty_terms,
+            'installed_at': self.installed_at.isoformat() if hasattr(self.installed_at, 'isoformat') else self.installed_at,
+            'warranty_ends': self.warranty_ends.isoformat() if hasattr(self.warranty_ends, 'isoformat') else self.warranty_ends
         }

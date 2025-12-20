@@ -55,6 +55,13 @@ class CreditNoteDTO:
         return {
             'credit_note_id': self.id,
             'credit_note_number': self.credit_note_number,
+            'purchase_return_id': self.purchase_return_id,
+            'supplier_invoice_id': self.supplier_invoice_id,
+            'credit_amount': float(self.credit_amount),
+            'applied_amount': float(self.applied_amount),
             'remaining_credit': float(self.remaining_credit),
-            'status': self.status
+            'status': self.status,
+            'notes': self.notes,
+            'issue_date': self.issue_date.isoformat() if hasattr(self.issue_date, 'isoformat') else self.issue_date,
+            'expiry_date': self.expiry_date.isoformat() if hasattr(self.expiry_date, 'isoformat') else self.expiry_date
         }

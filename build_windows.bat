@@ -14,10 +14,21 @@ exit /b
 
 :LogProcess
 
-
-echo [1/6] Cleaning previous build artifacts...
+echo [1/6] Archiving and cleaning previous build artifacts...
 if exist "build" rmdir /s /q "build"
-if exist "dist" rmdir /s /q "dist"
+if exist "dist" (
+    if exist "version.json" (
+        for /f "tokens=4 delims=:," %%a in ('type version.json ^| findstr "version"') do set OLD_VER=%%a
+        set OLD_VER=%OLD_VER:"=%
+        set OLD_VER=%OLD_VER: =%
+        set BUILD_TIME=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
+        set BUILD_TIME=%BUILD_TIME: =0%
+        echo Archiving existing dist to dist_v%OLD_VER%_%BUILD_TIME%...
+        move dist dist_v%OLD_VER%_%BUILD_TIME%
+    ) else (
+        rmdir /s /q "dist"
+    )
+)
 echo Done.
 echo.
 
@@ -27,6 +38,15 @@ if %ERRORLEVEL% NEQ 0 (
     echo Error: Python is not found or not in PATH.
     pause
     exit /b 1
+)
+echo Done.
+echo.
+
+echo [2.1] Generating version information...
+if exist "scripts\generate_version.py" (
+    python scripts\generate_version.py
+) else (
+    echo Warning: generate_version.py not found.
 )
 echo Done.
 echo.

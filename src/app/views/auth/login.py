@@ -23,7 +23,7 @@ class LoginView(QWidget):
         self.settings_prefix = settings_prefix
         self.password_visible = False # Track password visibility state
         self.setWindowTitle(f"{APP_SHORT_NAME} | {APP_VERSION}")
-        self.setFixedSize(420, 680)  # Increased height to prevent clipping
+        # self.setFixedSize(420, 680)  # Removed fixed size for responsiveness
         self.setObjectName("loginView")
         self.setup_ui()
         EventBus.subscribe(LanguageContextChangedEvent, self.update_language)
@@ -98,7 +98,7 @@ class LoginView(QWidget):
         layout.addSpacing(15)
         
         # Username field
-        self.username_label = QLabel(self.lm.get("Auth.username", "Username"))
+        self.username_label = QLabel(self.lm.get("Auth.username_label", "Username"))
         self.username_label.setObjectName("fieldLabel")
         layout.addWidget(self.username_label)
         layout.addSpacing(-12)  # Reduce spacing between label and input

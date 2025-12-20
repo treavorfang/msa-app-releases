@@ -12,43 +12,59 @@ class MetricCard(QFrame):
     def __init__(self, title, icon, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.StyledPanel)
-        self.setStyleSheet("""
-            MetricCard {
-                background-color: white;
-                border: 1px solid #E5E7EB;
-                border-radius: 8px;
-            }
-        """)
         
         layout = QVBoxLayout(self)
         
         # Header
         header = QHBoxLayout()
-        icon_lbl = QLabel(icon)
-        icon_lbl.setFont(QFont("Segoe UI Emoji", 16))
-        header.addWidget(icon_lbl)
+        self.icon_lbl = QLabel(icon)
+        self.icon_lbl.setFont(QFont("Segoe UI Emoji", 16))
+        header.addWidget(self.icon_lbl)
         
-        title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("color: #6B7280; font-weight: bold;")
-        header.addWidget(title_lbl)
+        self.title_lbl = QLabel(title)
+        self.title_lbl.setStyleSheet("font-weight: bold;") 
+        # Color set in update_theme
+        header.addWidget(self.title_lbl)
         header.addStretch()
         layout.addLayout(header)
         
         # Main Value
         self.value_lbl = QLabel("--")
-        self.value_lbl.setStyleSheet("font-size: 24px; font-weight: bold; color: #111827;")
         self.value_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.value_lbl)
         
         # Detail/Subtext
         self.detail_lbl = QLabel("")
-        self.detail_lbl.setStyleSheet("color: #9CA3AF; font-size: 12px;")
         self.detail_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.detail_lbl)
-
+        
     def set_value(self, value, detail=""):
         self.value_lbl.setText(str(value))
         self.detail_lbl.setText(detail)
+
+    def update_theme(self, theme_name):
+        if theme_name == 'dark':
+            bg = "#374151"
+            border = "#4B5563"
+            text_main = "white"
+            text_sub = "#9CA3AF"
+        else:
+            bg = "white"
+            border = "#E5E7EB"
+            text_main = "#111827"
+            text_sub = "#6B7280"
+            
+        self.setStyleSheet(f"""
+            MetricCard {{
+                background-color: {bg};
+                border: 1px solid {border};
+                border-radius: 8px;
+            }}
+        """)
+        self.title_lbl.setStyleSheet(f"color: {text_sub}; font-weight: bold; border: none; background: transparent;")
+        self.value_lbl.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {text_main}; border: none; background: transparent;")
+        self.detail_lbl.setStyleSheet(f"color: {text_sub}; font-size: 12px; border: none; background: transparent;")
+        self.icon_lbl.setStyleSheet("border: none; background: transparent;")
 
 class ResourceGauge(QGroupBox):
     def __init__(self, title, parent=None):
@@ -56,46 +72,65 @@ class ResourceGauge(QGroupBox):
         layout = QVBoxLayout(self)
         
         self.progress = QProgressBar()
-        self.progress.setStyleSheet("""
-            QProgressBar {
-                border: 1px solid #E5E7EB;
-                border-radius: 5px;
-                text-align: center;
-                height: 25px;
-            }
-            QProgressBar::chunk {
-                background-color: #3B82F6;
-                border-radius: 5px;
-            }
-        """)
+        # Initial style set in update_theme
         layout.addWidget(self.progress)
         
         self.detail_lbl = QLabel("")
         self.detail_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.detail_lbl)
         
+        self.current_percent = 0
+        
     def set_usage(self, percent, detail_text=""):
+        self.current_percent = percent
         self.progress.setValue(int(percent))
         self.detail_lbl.setText(detail_text)
-        
-        # Dynamic color
-        if percent < 60:
-            color = "#10B981" # Green
-        elif percent < 85:
-            color = "#F59E0B" # Orange
+        self._update_color()
+
+    def update_theme(self, theme_name):
+        self.current_theme = theme_name
+        if theme_name == 'dark':
+             self.text_color = "white"
+             self.border_color = "#4B5563"
+             self.track_color = "#1F2937"
         else:
-            color = "#EF4444" # Red
+             self.text_color = "#1F2937"
+             self.border_color = "#E5E7EB"
+             self.track_color = "#F3F4F6"
+             
+        self.setStyleSheet(f"QGroupBox {{ color: {self.text_color}; font-weight: bold; }}")
+        self.detail_lbl.setStyleSheet(f"color: {self.text_color}; border: none;")
+        self._update_color() # Re-apply progress bar style with new border/track
+        
+    def _update_color(self):
+        # Dynamic color based on percent + theme
+        percent = self.current_percent
+        
+        # Glowing Gradients
+        if percent < 60:
+            # Green Glow
+            bg_gradient = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #10B981)" 
+        elif percent < 85:
+            # Orange Glow
+            bg_gradient = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FBBF24, stop:1 #F59E0B)"
+        else:
+            # Red Glow
+            bg_gradient = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F87171, stop:1 #EF4444)"
+            
+        border = getattr(self, 'border_color', '#E5E7EB')
+        track = getattr(self, 'track_color', 'white')
             
         self.progress.setStyleSheet(f"""
             QProgressBar {{
-                border: 1px solid #E5E7EB;
+                border: 1px solid {border};
                 border-radius: 5px;
                 text-align: center;
                 height: 25px;
+                background-color: {track};
+                color: {self.text_color if hasattr(self, 'text_color') else 'black'}; 
             }}
             QProgressBar::chunk {{
-                background-color: {color};
-                border-radius: 5px;
+                background-color: {bg_gradient};
             }}
         """)
 
@@ -108,10 +143,41 @@ class HealthMonitorTab(QWidget):
         
         self._setup_ui()
         
+        # Theme
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self.update_theme)
+             self.update_theme(self.container.theme_controller.current_theme)
+        else:
+             self.update_theme('dark')
+
         # Refresh Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_stats)
         # Timer started in showEvent
+
+    def update_theme(self, theme_name):
+        # Update cards
+        for card in [self.uptime_card, self.db_status_card, self.latency_card, self.system_card]:
+             card.update_theme(theme_name)
+             
+        # Update gauges
+        for gauge in [self.mem_gauge, self.disk_gauge]:
+             gauge.update_theme(theme_name)
+             
+        # Update Labels
+        if theme_name == 'dark':
+            text_color = "white"
+        else:
+            text_color = "#1F2937"
+            
+        self.os_lbl.setStyleSheet(f"color: {text_color};")
+        self.python_lbl.setStyleSheet(f"color: {text_color};")
+        self.db_path_lbl.setStyleSheet(f"color: {text_color};")
+        
+        # Also update labels inside the layout if possible or set stylesheet on self
+        # Be careful not to override specifics, but setting color on self propagates usually
+        self.setStyleSheet(f"QLabel {{ color: {text_color}; }}")
+
 
     def showEvent(self, event):
         super().showEvent(event)

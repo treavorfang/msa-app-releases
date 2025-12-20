@@ -189,10 +189,10 @@ class TestModernDashboardTabInitialization:
         
         # Assert - Check key UI elements exist
         assert hasattr(dashboard, 'date_range_combo')
-        assert hasattr(dashboard, 'revenue_canvas')  # Was revenue_chart_container
-        assert hasattr(dashboard, 'tickets_list_layout')  # Was recent_tickets_list
-        assert hasattr(dashboard, 'stats_layout')  # Was quick_stats_container
-        assert hasattr(dashboard, 'tech_perf_layout')  # Was tech_performance_container
+        assert hasattr(dashboard, 'wave_chart')  # Corrected from revenue_canvas
+        assert hasattr(dashboard, 'tickets_list_layout')
+        assert hasattr(dashboard, 'stats_layout')
+        assert hasattr(dashboard, 'tech_perf_layout')
 
 class TestModernDashboardTabDataLoading:
     """Test data loading and refresh functionality"""

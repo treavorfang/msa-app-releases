@@ -24,6 +24,44 @@ class AuditLogTab(QWidget):
         self._data_loaded = False
         # self._load_users()
         # self._load_logs()
+        
+        # Theme
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self.update_theme)
+             self.update_theme(self.container.theme_controller.current_theme)
+        else:
+             self.update_theme('dark')
+
+    def update_theme(self, theme_name):
+        if theme_name == 'dark':
+            bg_color = "#1F2937"
+            text_color = "white"
+            input_bg = "#2D2D2D"
+            input_border = "#4B5563"
+            table_bg = "#1F2937"
+        else:
+            bg_color = "#FFFFFF"
+            text_color = "#1F2937"
+            input_bg = "#F3F4F6"
+            input_border = "#D1D5DB"
+            table_bg = "#FFFFFF"
+            
+        # Update Table
+        if hasattr(self, 'table'):
+            self.table.setStyleSheet(f"QTableWidget {{ background-color: {table_bg}; color: {text_color}; border: none; }}")
+            
+        # Update Controls
+        style = f"""
+            QLineEdit, QComboBox, QDateEdit {{
+                background-color: {input_bg};
+                color: {text_color};
+                border: 1px solid {input_border};
+                border-radius: 4px;
+                padding: 4px;
+            }}
+        """
+        self.setStyleSheet(style)
+
 
     def showEvent(self, event):
         super().showEvent(event)

@@ -12,20 +12,20 @@ try:
     print("Constants imported successfully.")
 
     print("Importing CreditNoteListTab...")
-    from views.financial.credit_note_list_tab import CreditNoteListTab
+    from views.inventory.financial.credit_note_list_tab import CreditNoteListTab
     print("CreditNoteListTab imported successfully.")
 
     print("Importing CreditNoteDetailsDialog...")
-    from views.financial.credit_note_details_dialog import CreditNoteDetailsDialog
+    from views.inventory.financial.credit_note_details_dialog import CreditNoteDetailsDialog
     print("CreditNoteDetailsDialog imported successfully.")
 
     print("Importing ApplyCreditDialog...")
-    from views.financial.apply_credit_dialog import ApplyCreditDialog
+    from views.inventory.financial.apply_credit_dialog import ApplyCreditDialog
     print("ApplyCreditDialog imported successfully.")
 
-    print("Importing FinancialTab...")
-    from views.financial.financial_tab import FinancialTab
-    print("FinancialTab imported successfully.")
+    print("Importing ModernFinancialTab...")
+    from views.financial.modern_financial_tab import ModernFinancialTab
+    print("ModernFinancialTab imported successfully.")
     
     print("ALL IMPORTS SUCCESSFUL")
 

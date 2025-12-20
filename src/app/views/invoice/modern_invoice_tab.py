@@ -17,6 +17,7 @@ from utils.currency_formatter import currency_formatter
 import csv
 from core.event_bus import EventBus
 from core.events import InvoiceCreatedEvent, InvoiceUpdatedEvent, InvoiceDeletedEvent, BranchContextChangedEvent
+from views.components.new_dashboard_widgets import is_dark_theme
 
 class ModernInvoiceTab(QWidget):
     """Modern invoice tab with card/list views and enhanced features"""
@@ -98,10 +99,6 @@ class ModernInvoiceTab(QWidget):
         self.view_layout = QVBoxLayout(self.view_container)
         self.view_layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.view_container)
-        
-        # Action buttons
-        action_layout = self._create_action_buttons()
-        layout.addLayout(action_layout)
     
     def _create_summary_cards(self):
         """Create summary cards showing key metrics"""
@@ -261,26 +258,28 @@ class ModernInvoiceTab(QWidget):
         clear_btn.clicked.connect(self._clear_filters)
         row1.addWidget(clear_btn)
         
-        layout.addLayout(row1)
-        
-        return layout
-    
-    def _create_action_buttons(self):
-        """Create action buttons"""
-        layout = QHBoxLayout()
-        
-        # Export buttons
-        self.export_csv_btn = QPushButton(self.lm.get("Invoices.export_csv", "📄 Export CSV"))
-        layout.addWidget(self.export_csv_btn)
-        
-        self.export_pdf_btn = QPushButton(self.lm.get("Invoices.export_pdf", "📑 Export PDF"))
-        layout.addWidget(self.export_pdf_btn)
-        
-        layout.addStretch()
-        
         # Refresh button
         self.refresh_btn = QPushButton(self.lm.get("Common.refresh", "🔄 Refresh"))
-        layout.addWidget(self.refresh_btn)
+        row1.addWidget(self.refresh_btn)
+
+        # Export button with menu
+        export_btn = QPushButton(f"📥 {self.lm.get('Common.export', 'Export')}")
+        export_menu = QMenu(self)
+        
+        # CSV Action
+        export_csv_action = QAction(self.lm.get("Invoices.export_csv", "Export CSV"), self)
+        export_csv_action.triggered.connect(self._export_to_csv)
+        export_menu.addAction(export_csv_action)
+        
+        # PDF Action
+        export_pdf_action = QAction(self.lm.get("Invoices.export_pdf", "Export PDF"), self)
+        export_pdf_action.triggered.connect(self._export_to_pdf)
+        export_menu.addAction(export_pdf_action)
+        
+        export_btn.setMenu(export_menu)
+        row1.addWidget(export_btn)
+        
+        layout.addLayout(row1)
         
         return layout
     
@@ -293,10 +292,20 @@ class ModernInvoiceTab(QWidget):
         self.cards_view_btn.clicked.connect(lambda: self._switch_view('cards'))
         self.list_view_btn.clicked.connect(lambda: self._switch_view('list'))
         self.refresh_btn.clicked.connect(self._load_invoices)
-        self.export_csv_btn.clicked.connect(self._export_to_csv)
-        self.export_pdf_btn.clicked.connect(self._export_to_pdf)
+        # Export actions are now connected directly in _create_action_buttons
         
         # Invoice events are now handled by EventBus
+        self._connect_theme_signal()
+
+    def _connect_theme_signal(self):
+        """Connect to theme change signal"""
+        if self.container and hasattr(self.container, 'theme_controller') and self.container.theme_controller:
+            if hasattr(self.container.theme_controller, 'theme_changed'):
+                self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme change"""
+        self._load_invoices()
     
     def _on_search_changed(self):
         """Handle search input change with debounce"""
@@ -518,24 +527,34 @@ class ModernInvoiceTab(QWidget):
     
     def _create_invoice_card(self, invoice):
         """Create an invoice card"""
+        # Theme colors
+        dark_mode = is_dark_theme(self)
+        
+        bg_color = "#2C3E50" if dark_mode else "#FFFFFF"
+        border_color = "#34495E" if dark_mode else "#BDC3C7"
+        text_main = "white" if dark_mode else "#2C3E50"
+        text_sub = "#BDC3C7" if dark_mode else "#7F8C8D"
+        text_date = "#95A5A6" if dark_mode else "#95A5A6"
+        text_total = "#ECF0F1" if dark_mode else "#2C3E50"
+        
         card = QFrame()
         card.setObjectName("invoice_card")
         card.setFrameShape(QFrame.StyledPanel)
-        card.setStyleSheet("""
-            #invoice_card {
-                background-color: #2C3E50;
-                border: 1px solid #34495E;
+        card.setStyleSheet(f"""
+            #invoice_card {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
                 border-radius: 8px;
-            }
-            #invoice_card:hover {
+            }}
+            #invoice_card:hover {{
                 border-color: #3498DB;
-                background-color: #34495E;
-            }
-            QLabel {
+                background-color: {bg_color};
+            }}
+            QLabel {{
                 border: none;
                 padding: 0;
                 background: transparent;
-            }
+            }}
         """)
         card.setMinimumHeight(160)
         card.setCursor(Qt.PointingHandCursor)
@@ -569,7 +588,7 @@ class ModernInvoiceTab(QWidget):
         header = QHBoxLayout()
         
         invoice_label = QLabel(f"#{invoice.invoice_number}")
-        invoice_label.setStyleSheet("font-weight: bold; font-size: 14px; color: white;")
+        invoice_label.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {text_main};")
         header.addWidget(invoice_label)
         
         header.addStretch()
@@ -583,24 +602,24 @@ class ModernInvoiceTab(QWidget):
         # Customer name
         customer_name = self._get_customer_name(invoice)
         customer_label = QLabel(f"👤 {customer_name}")
-        customer_label.setStyleSheet("font-size: 12px; color: #BDC3C7;")
+        customer_label.setStyleSheet(f"font-size: 12px; color: {text_sub};")
         layout.addWidget(customer_label)
         
         # Date
         date_str = invoice.created_at.strftime("%Y-%m-%d") if invoice.created_at else "N/A"
         date_label = QLabel(f"📅 {date_str}")
-        date_label.setStyleSheet("font-size: 11px; color: #95A5A6;")
+        date_label.setStyleSheet(f"font-size: 11px; color: {text_date};")
         layout.addWidget(date_label)
 
         # Device
         if invoice.device_brand:
             device_label = QLabel(f"📱 {invoice.device_brand} {invoice.device_model or ''}")
-            device_label.setStyleSheet("font-size: 11px; color: #BDC3C7;")
+            device_label.setStyleSheet(f"font-size: 11px; color: {text_sub};")
             layout.addWidget(device_label)
             
         if invoice.error_description:
             issue_label = QLabel(f"🔧 {invoice.error_description}")
-            issue_label.setStyleSheet("font-size: 11px; color: #BDC3C7; font-style: italic;")
+            issue_label.setStyleSheet(f"font-size: 11px; color: {text_sub}; font-style: italic;")
             issue_label.setWordWrap(True)
             layout.addWidget(issue_label)
         
@@ -612,7 +631,7 @@ class ModernInvoiceTab(QWidget):
         amounts_layout = QHBoxLayout()
         
         total_lbl = QLabel(f"{self.lm.get('Invoices.total_header', 'Total')}: {currency_formatter.format(total)}")
-        total_lbl.setStyleSheet("color: #ECF0F1;")
+        total_lbl.setStyleSheet(f"color: {text_total};")
         amounts_layout.addWidget(total_lbl)
         
         paid_lbl = QLabel(f"{self.lm.get('Invoices.paid', 'Paid')}: {currency_formatter.format(paid)}")
@@ -842,35 +861,46 @@ class ModernInvoiceTab(QWidget):
         
     def _update_card_selection_style(self, card, is_selected):
         """Update card style based on selection"""
+        # Theme colors
+        dark_mode = is_dark_theme(self)
+        
+        # Base colors
+        bg_color = "#2C3E50" if dark_mode else "#FFFFFF"
+        border_color = "#34495E" if dark_mode else "#BDC3C7"
+        
+        # Selection colors
+        sel_bg = "#34495E" if dark_mode else "#EFF6FF"
+        sel_border = "#3498DB" # Stay blue
+        
         if is_selected:
-            card.setStyleSheet("""
-                #invoice_card {
-                    background-color: #34495E;
-                    border: 2px solid #3498DB;
+            card.setStyleSheet(f"""
+                #invoice_card {{
+                    background-color: {sel_bg};
+                    border: 2px solid {sel_border};
                     border-radius: 8px;
-                }
-                QLabel {
+                }}
+                QLabel {{
                     border: none;
                     padding: 0;
                     background: transparent;
-                }
+                }}
             """)
         else:
-            card.setStyleSheet("""
-                #invoice_card {
-                    background-color: #2C3E50;
-                    border: 1px solid #34495E;
+            card.setStyleSheet(f"""
+                #invoice_card {{
+                    background-color: {bg_color};
+                    border: 1px solid {border_color};
                     border-radius: 8px;
-                }
-                #invoice_card:hover {
-                    border-color: #3498DB;
-                    background-color: #34495E;
-                }
-                QLabel {
+                }}
+                #invoice_card:hover {{
+                    border-color: {sel_border};
+                    background-color: {bg_color};
+                }}
+                QLabel {{
                     border: none;
                     padding: 0;
                     background: transparent;
-                }
+                }}
             """)
 
     def _on_background_clicked(self, event):
@@ -954,28 +984,37 @@ class ModernInvoiceTab(QWidget):
     def _export_to_pdf(self):
         """Export invoices to PDF report using WeasyPrint"""
         if not self._current_invoice_list:
+            QMessageBox.information(
+                self,
+                self.lm.get("Common.info", "Info"),
+                self.lm.get("Invoices.no_invoices_to_export", "No invoices to export")
+            )
             return
-        
+    
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save PDF", "invoices_report.pdf", "PDF Files (*.pdf)")
-        
+            self, 
+            self.lm.get("Invoices.export_pdf", "Save PDF"), 
+            f"invoices_report_{datetime.now().strftime('%Y%m%d')}.pdf", 
+            "PDF Files (*.pdf)"
+        )
+    
         if not path:
             return
-        
+    
         try:
             # Import WeasyPrint (lazy import)
             import platform
             import os
-            
+        
             # MacOS Fix for WeasyPrint
             if platform.system() == 'Darwin':
                 os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = '/opt/homebrew/lib:/usr/local/lib:/usr/lib:' + os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
-            
+        
             from weasyprint import HTML, CSS
-            
+        
             # Use fonts that support Burmese
             font_family = "'Myanmar Text', 'Myanmar MN', 'Noto Sans Myanmar', 'Pyidaungsu', sans-serif"
-            
+        
             html = f"""
             <html>
             <head>
@@ -984,7 +1023,7 @@ class ModernInvoiceTab(QWidget):
                     body {{ font-family: {font_family}; }}
                     h1 {{ color: #2980B9; margin-bottom: 5px; }}
                     .meta {{ font-size: 10pt; color: #7F8C8D; margin-bottom: 20px; }}
-                    
+                
                     /* Summary Boxes */
                     .summary-container {{ display: flex; gap: 20px; margin-bottom: 20px; }}
                     .summary-box {{ 
@@ -996,7 +1035,7 @@ class ModernInvoiceTab(QWidget):
                     }}
                     .summary-label {{ font-size: 9pt; color: #7F8C8D; }}
                     .summary-value {{ font-size: 11pt; font-weight: bold; color: #2C3E50; }}
-                    
+                
                     /* Table */
                     table {{ width: 100%; border-collapse: collapse; font-size: 9pt; }}
                     th {{ 
@@ -1012,7 +1051,7 @@ class ModernInvoiceTab(QWidget):
                         color: #2C3E50;
                     }}
                     tr:nth-child(even) {{ background-color: #F8F9F9; }}
-                    
+                
                     /* Status Colors */
                     .status-paid {{ color: #27AE60; font-weight: bold; }}
                     .status-unpaid {{ color: #E74C3C; font-weight: bold; }}
@@ -1024,6 +1063,142 @@ class ModernInvoiceTab(QWidget):
                 <h1>{self.lm.get("Invoices.report_title", "INVOICES REPORT")}</h1>
                 <div class="meta">{self.lm.get("Common.generated", "Generated")}: {datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
             """
+        
+            # Calculate Summary
+            total_amount = Decimal('0.00')
+            total_paid = Decimal('0.00')
+            total_balance = Decimal('0.00')
+            overdue_count = 0
+            
+            # Sort invoices
+            sorted_invoices = sorted(self._current_invoice_list, key=lambda x: x.created_at, reverse=True)
+        
+            for invoice in sorted_invoices:
+                total = Decimal(str(invoice.total))
+                paid = self._calculate_paid_amount(invoice)
+                balance = total - paid
+            
+                total_amount += total
+                total_paid += paid
+                total_balance += balance
+            
+                if self._is_overdue(invoice):
+                    overdue_count += 1
+        
+            # Add Summary Section
+            html += f"""
+                <div class="summary-container">
+                    <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Invoices.total_invoices", "Total Invoices")}</div>
+                        <div class="summary-value">{len(self._current_invoice_list)} ({self.lm.get("Invoices.overdue", "Overdue")}: {overdue_count})</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Invoices.total_amount", "Total Amount")}</div>
+                        <div class="summary-value">{currency_formatter.format(total_amount)}</div>
+                        <div class="summary-label">{self.lm.get("Invoices.total_paid", "Total Paid")}</div>
+                        <div class="summary-value" style="color: #27AE60;">{currency_formatter.format(total_paid)}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Invoices.outstanding_balance", "Outstanding Balance")}</div>
+                        <div class="summary-value" style="color: #E74C3C;">{currency_formatter.format(total_balance)}</div>
+                    </div>
+                </div>
+            """
+        
+            # Table Header
+            html += f"""
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{self.lm.get("Invoices.invoice_number", "Invoice #")}</th>
+                            <th>{self.lm.get("Common.date", "Date")}</th>
+                            <th>{self.lm.get("Invoices.customer", "Customer")}</th>
+                            <th>{self.lm.get("Invoices.total", "Total")}</th>
+                            <th>{self.lm.get("Invoices.paid", "Paid")}</th>
+                            <th>{self.lm.get("Invoices.balance", "Balance")}</th>
+                            <th>{self.lm.get("Invoices.status", "Status")}</th>
+                            <th>{self.lm.get("Invoices.due_date", "Due Date")}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
+        
+            # Table Rows
+            for invoice in sorted_invoices:
+                customer_name = self._get_customer_name(invoice)
+                total = Decimal(str(invoice.total))
+                paid = self._calculate_paid_amount(invoice)
+                balance = total - paid
+                
+                date_str = invoice.created_at.strftime("%Y-%m-%d") if invoice.created_at else "N/A"
+                due_str = invoice.due_date.strftime("%Y-%m-%d") if invoice.due_date else "N/A"
+                
+                
+                status_key = f"Invoices.{invoice.payment_status}_status"
+                status_text = self.lm.get(status_key, invoice.payment_status.upper().replace('_', ' '))
+                
+                status_class = ""
+                if invoice.payment_status == 'paid':
+                    status_class = "status-paid"
+                elif invoice.payment_status == 'unpaid':
+                    status_class = "status-unpaid"
+                elif invoice.payment_status == 'partially_paid':
+                    status_class = "status-partially-paid"
+                
+                due_class = ""
+                if self._is_overdue(invoice):
+                    due_class = "status-overdue"
+            
+                html += f"""
+                    <tr>
+                        <td>{invoice.invoice_number}</td>
+                        <td>{date_str}</td>
+                        <td>{customer_name}</td>
+                        <td style="text-align: right;">{currency_formatter.format(total)}</td>
+                        <td style="text-align: right;">{currency_formatter.format(paid)}</td>
+                        <td style="text-align: right;">{currency_formatter.format(balance)}</td>
+                        <td class="{status_class}" style="text-align: center;">{status_text}</td>
+                        <td class="{due_class}" style="text-align: center;">{due_str}</td>
+                    </tr>
+                """
+            
+            html += f"""
+                    </tbody>
+                </table>
+                <div style="margin-top: 20px; font-size: 8pt; color: #7F8C8D; border-top: 1px solid #BDC3C7; padding-top: 10px;">
+                    {self.lm.get("Common.confidential_notice", "Confidential - For Internal Use Only")}
+                </div>
+            </body>
+            </html>
+            """
+        
+            # Generate PDF
+            HTML(string=html).write_pdf(target=path, stylesheets=[CSS(string="")])
+        
+            try:
+                # Try to open the file
+                import subprocess
+                if platform.system() == 'Darwin':       # macOS
+                    subprocess.call(('open', path))
+                elif platform.system() == 'Windows':    # Windows
+                    os.startfile(path)
+                else:                                   # linux variants
+                    subprocess.call(('xdg-open', path))
+            except:
+                pass # Ignore if can't open
+            
+            QMessageBox.information(
+                self, 
+                self.lm.get("Common.success", "Success"), 
+                f"{self.lm.get('Invoices.export_success', 'Successfully exported')} {len(self._current_invoice_list)} {self.lm.get('Invoices.invoices', 'invoices')}."
+            )
+        
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                self.lm.get("Common.error", "Error"), 
+                f"{self.lm.get('Invoices.export_failed', 'Failed to export to PDF')}: {str(e)}"
+            )
             
             # Calculate Summary
             total_amount = Decimal('0.00')

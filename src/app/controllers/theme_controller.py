@@ -1,10 +1,12 @@
-# src/app/controllers/theme_controller.py
-from PySide6.QtCore import QFile, QTextStream, QSettings
+from PySide6.QtCore import QFile, QTextStream, QSettings, QObject, Signal
 from PySide6.QtWidgets import QApplication
 from config.config_manager import SETTINGS_ORGANIZATION, SETTINGS_APPLICATION, DEFAULT_THEME, THEME_SETTING_KEY, THEMES
 
-class ThemeController:
+class ThemeController(QObject):
+    theme_changed = Signal(str)
+
     def __init__(self, app):
+        super().__init__()
         self.app = app
         self.settings = QSettings(SETTINGS_ORGANIZATION, SETTINGS_APPLICATION)
         self.available_themes = THEMES  # Initialize available_themes FIRST
@@ -36,7 +38,9 @@ class ThemeController:
             self.app.setStyleSheet(stream.readAll())
             file.close()
             self.current_theme = theme_name
-            self._save_theme(theme_name)  # Save the theme preference
+            self._save_theme(theme_name)  # Save the theme preference, calls sync()
+            # Emit signal so views can update
+            self.theme_changed.emit(theme_name)
         else:
             print(f"Failed to load theme: {theme_path}")
             

@@ -22,6 +22,53 @@ class BusinessSettingsTab(QWidget):
         self.current_settings = None
         self._setup_ui()
         self._load_settings()
+        
+        # Theme
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self.update_theme)
+             self.update_theme(self.container.theme_controller.current_theme)
+        else:
+             self.update_theme('dark')
+
+    def update_theme(self, theme_name):
+        if theme_name == 'dark':
+            bg_color = "transparent" # It's inside a tab, let container handle or transparent
+            input_bg = "#1F2937"
+            input_border = "#374151"
+            text_color = "#F3F4F6"
+            label_color = "white"
+        else:
+            bg_color = "transparent"
+            input_bg = "#FFFFFF"
+            input_border = "#D1D5DB"
+            text_color = "#1F2937"
+            label_color = "#1F2937"
+            
+        # Update inputs
+        input_style = f"""
+            QLineEdit, QTextEdit, QDoubleSpinBox {{
+                background-color: {input_bg};
+                border: 1px solid {input_border};
+                border-radius: 4px;
+                padding: 8px;
+                color: {text_color};
+                font-size: 13px;
+            }}
+            QLineEdit:focus, QTextEdit:focus, QDoubleSpinBox:focus {{
+                border-color: #3B82F6;
+            }}
+        """
+        
+        widgets = [
+            self.business_name, self.business_phone, self.address,
+            self.tax_id, self.default_tax_rate, self.logo_url, self.notes
+        ]
+        
+        for w in widgets:
+            w.setStyleSheet(input_style)
+            
+        # Update labels (globally for this widget)
+        self.setStyleSheet(f"QLabel {{ color: {label_color}; font-size: 13px; font-weight: 500; }}")
     
     def _setup_ui(self):
         """Setup simple UI"""
@@ -144,20 +191,7 @@ class BusinessSettingsTab(QWidget):
         main_layout.addWidget(scroll)
     
     def _style_input(self, widget):
-        """Apply simple styling to input widgets"""
-        widget.setStyleSheet("""
-            QLineEdit, QTextEdit, QDoubleSpinBox {
-                background-color: #1F2937;
-                border: 1px solid #374151;
-                border-radius: 4px;
-                padding: 8px;
-                color: #F3F4F6;
-                font-size: 13px;
-            }
-            QLineEdit:focus, QTextEdit:focus, QDoubleSpinBox:focus {
-                border-color: #3B82F6;
-            }
-        """)
+        pass # Styling handled by update_theme
     
     def _choose_logo(self):
         """Open file dialog to choose logo"""

@@ -82,6 +82,16 @@ class PartDTO:
             'part_id': self.id,
             'sku': self.sku,
             'name': self.name,
+            'brand': self.brand,
+            'model_compatibility': self.model_compatibility,
+            'category_id': self.category_id,
+            'supplier_id': self.supplier_id,
+            'branch_id': self.branch_id,
+            'cost_price': float(self.cost_price),
             'current_stock': self.current_stock,
-            'cost_price': float(self.cost_price)
+            'min_stock_level': self.min_stock_level,
+            'barcode': self.barcode,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at,
+            'updated_at': self.updated_at.isoformat() if hasattr(self.updated_at, 'isoformat') else self.updated_at
         }

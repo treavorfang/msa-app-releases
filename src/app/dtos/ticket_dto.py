@@ -98,5 +98,21 @@ class TicketDTO:
             'status': self.status,
             'priority': self.priority,
             'error': self.error,
-            'assigned_technician_id': self.assigned_technician_id
+            'error_description': self.error_description,
+            'accessories': self.accessories,
+            'internal_notes': self.internal_notes,
+            'estimated_cost': float(self.estimated_cost),
+            'actual_cost': float(self.actual_cost),
+            'deposit_paid': float(self.deposit_paid),
+            'assigned_technician_id': self.assigned_technician_id,
+            'device_id': self.device_id,
+            'created_by_id': self.created_by_id,
+            'branch_id': self.branch_id,
+            'approved_by_id': self.approved_by_id,
+            'warranty_covered': self.warranty_covered,
+            'is_deleted': self.is_deleted,
+            'deadline': self.deadline.isoformat() if hasattr(self.deadline, 'isoformat') else self.deadline,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at,
+            'completed_at': self.completed_at.isoformat() if hasattr(self.completed_at, 'isoformat') else self.completed_at,
+            'deleted_at': self.deleted_at.isoformat() if hasattr(self.deleted_at, 'isoformat') else self.deleted_at
         }

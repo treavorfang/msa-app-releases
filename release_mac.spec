@@ -46,6 +46,17 @@ hidden_imports = [
     'tinycss2',
 ]
 
+migration_imports = [
+    'migrations.001_initial_schema',
+    'migrations.002_add_ticket_indexes',
+    'migrations.003_set_default_branch',
+    'migrations.004_seed_admin_user',
+    'migrations.005_add_customization_to_settings',
+    'migrations.007_add_technician_bonus_performance'
+]
+
+hidden_imports += migration_imports
+
 if sys.platform == 'win32':
     hidden_imports.append('win32timezone')
 
@@ -58,6 +69,7 @@ a = Analysis(
         ('src/app/config/*.ini', 'config'),
         ('src/app/config/languages', 'config/languages'),
         ('src/app/config/*.flags', 'config'),
+        ('src/app/migrations/*.py', 'migrations'),
         ('plugins', 'plugins'),
     ],
     hiddenimports=hidden_imports,

@@ -9,6 +9,7 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from peewee import JOIN, fn
 from models.ticket import Ticket
+from models.invoice import Invoice
 from models.device import Device
 from models.customer import Customer
 from models.technician import Technician
@@ -223,20 +224,14 @@ class TicketRepository:
         completed = completed_query.count()
         
         # Revenue in range
-        completed_tickets_query = Ticket.select().where(
-            (Ticket.status == 'completed') &
-            (Ticket.completed_at >= start_datetime) &
-            (Ticket.completed_at <= end_datetime) &
-            (Ticket.is_deleted == False)
+        revenue_query = Invoice.select(fn.SUM(Invoice.total)).where(
+            (Invoice.created_at >= start_datetime) &
+            (Invoice.created_at <= end_datetime)
         )
         if branch_id:
-            completed_tickets_query = completed_tickets_query.where(Ticket.branch == branch_id)
+            revenue_query = revenue_query.where(Invoice.branch == branch_id)
         
-        revenue = 0.0
-        for ticket in completed_tickets_query:
-            # Use actual_cost if set (from invoice), otherwise estimated_cost
-            cost = float(ticket.actual_cost) if ticket.actual_cost > 0 else float(ticket.estimated_cost or 0.0)
-            revenue += cost
+        revenue = revenue_query.scalar() or 0.0
         
         # Total tickets in range
         total_tickets_query = Ticket.select().where(
@@ -365,50 +360,33 @@ class TicketRepository:
         return distribution
     
     def get_revenue_trend(self, start_date, end_date, branch_id: Optional[int] = None) -> List[dict]:
-        """Get daily revenue for the date range using actual costs from completed tickets."""
+        """Get daily revenue for the date range using actual Invoices."""
         start_datetime = datetime.combine(start_date, datetime.min.time())
         end_datetime = datetime.combine(end_date, datetime.max.time())
         
-        # Get completed tickets - use created_at as fallback if completed_at is null
-        trend_query = (Ticket
+        # Query Invoices directly
+        trend_query = (Invoice
             .select(
-                fn.DATE(fn.COALESCE(Ticket.completed_at, Ticket.created_at)).alias('date'),
-                fn.COUNT(Ticket.id).alias('count')
+                fn.DATE(Invoice.created_at).alias('date'),
+                fn.SUM(Invoice.total).alias('revenue'),
+                fn.COUNT(Invoice.id).alias('count')
             )
             .where(
-                (Ticket.status == 'completed') &
-                (
-                    ((Ticket.completed_at >= start_datetime) & (Ticket.completed_at <= end_datetime)) |
-                    ((Ticket.completed_at.is_null(True)) & (Ticket.created_at >= start_datetime) & (Ticket.created_at <= end_datetime))
-                ) &
-                (Ticket.is_deleted == False)
+                (Invoice.created_at >= start_datetime) &
+                (Invoice.created_at <= end_datetime)
             )
         )
+        
         if branch_id:
-            trend_query = trend_query.where(Ticket.branch == branch_id)
+            trend_query = trend_query.where(Invoice.branch == branch_id)
             
-        trend_query = trend_query.group_by(fn.DATE(fn.COALESCE(Ticket.completed_at, Ticket.created_at))).order_by(fn.DATE(fn.COALESCE(Ticket.completed_at, Ticket.created_at)))
+        trend_query = trend_query.group_by(fn.DATE(Invoice.created_at)).order_by(fn.DATE(Invoice.created_at))
         
         trend = []
         for item in trend_query:
-            # Get all tickets for this date and sum revenue
-            date_tickets_query = Ticket.select().where(
-                (Ticket.status == 'completed') &
-                (fn.DATE(fn.COALESCE(Ticket.completed_at, Ticket.created_at)) == item.date) &
-                (Ticket.is_deleted == False)
-            )
-            if branch_id:
-                date_tickets_query = date_tickets_query.where(Ticket.branch == branch_id)
-            
-            daily_revenue = 0.0
-            for ticket in date_tickets_query:
-                # Use actual_cost if set, otherwise estimated_cost
-                cost = float(ticket.actual_cost) if ticket.actual_cost > 0 else float(ticket.estimated_cost or 0.0)
-                daily_revenue += cost
-            
             trend.append({
-                'date': str(item.date),
-                'revenue': daily_revenue,
+                'date': str(item.date).split(" ")[0],
+                'revenue': float(item.revenue or 0.0),
                 'count': item.count
             })
         

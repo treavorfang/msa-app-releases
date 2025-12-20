@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath('src/app'))
 
 try:
     from core.dependency_container import DependencyContainer
-    from views.financial.apply_credit_dialog import ApplyCreditDialog
+    from views.inventory.financial.apply_credit_dialog import ApplyCreditDialog
     from models.credit_note import CreditNote
     from models.supplier_invoice import SupplierInvoice
     

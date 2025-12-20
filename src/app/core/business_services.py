@@ -22,6 +22,7 @@ from services.supplier_invoice_service import SupplierInvoiceService
 from services.supplier_payment_service import SupplierPaymentService
 from services.report_service import ReportService
 from services.credit_note_service import CreditNoteService
+from services.financial_service import FinancialService
 
 from interfaces.iauth_service import IAuthService
 from interfaces.icustomer_service import ICustomerService
@@ -138,6 +139,11 @@ class BusinessServices:
         )
         
         self._report_service = ReportService()
+        
+        self._financial_service = FinancialService(
+            repository=repositories.financial_repository,
+            audit_service=core_services.audit_service
+        )
 
     # Business Services Properties
     @property
@@ -231,3 +237,7 @@ class BusinessServices:
     @property
     def report_service(self):
         return self._report_service
+        
+    @property
+    def financial_service(self):
+        return self._financial_service

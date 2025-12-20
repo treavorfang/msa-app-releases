@@ -17,6 +17,74 @@ class CustomizationTab(QWidget):
         self.lm = language_manager
         self._setup_ui()
         self._load_settings()
+        
+        # Theme
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self.update_theme)
+             self.update_theme(self.container.theme_controller.current_theme)
+        else:
+             self.update_theme('dark')
+
+    def update_theme(self, theme_name):
+        if theme_name == 'dark':
+            bg = "#1F2937"
+            text_color = "white"
+            card_bg = "#374151"
+            card_border = "#4B5563" 
+            input_bg = '#1F2937'
+            input_border = "#4B5563"
+            
+            title_color = "#60A5FA" # Light blue
+            btn_bg = "#3B82F6"
+            btn_hover = "#2563EB"
+        else:
+            bg = "#FFFFFF"
+            text_color = "#1F2937"
+            card_bg = "#FFFFFF"
+            card_border = "#E5E7EB"
+            input_bg = "#FFFFFF"
+            input_border = "#D1D5DB"
+            
+            title_color = "#2563EB" # Darker blue
+            btn_bg = "#2563EB"
+            btn_hover = "#1D4ED8"
+            
+        # Global styles for this tab
+        self.setStyleSheet(f"""
+            QWidget {{ color: {text_color}; }}
+            QFrame#CustomCard {{
+                background-color: {card_bg};
+                border: 1px solid {card_border};
+                border-radius: 12px;
+            }}
+            QLabel#CardTitle {{
+                font-weight: bold; 
+                font-size: 16px; 
+                color: {title_color}; 
+                margin-bottom: 5px;
+                border: none;
+            }}
+            QLineEdit {{
+                border: 1px solid {input_border};
+                border-radius: 6px;
+                padding: 5px 10px;
+                background-color: {input_bg};
+                color: {text_color};
+            }}
+            QLineEdit:focus {{
+                border: 2px solid #3B82F6;
+            }}
+            QPushButton {{
+                background-color: {btn_bg};
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                border-radius: 8px;
+                border: none;
+                padding: 10px; 
+            }}
+            QPushButton:hover {{ background-color: {btn_hover}; }}
+        """)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -32,23 +100,17 @@ class CustomizationTab(QWidget):
         main_layout.setContentsMargins(5, 5, 5, 5)
         
         # --- Helper for common styling ---
-        card_style = """
-            QFrame#CustomCard {
-                background-color: palette(window);
-                border: 1px solid palette(mid);
-                border-radius: 12px;
-            }
-        """
         
         def create_card_title(text):
             label = QLabel(text)
-            label.setStyleSheet("font-weight: bold; font-size: 16px; color: #3B82F6; margin-bottom: 5px;")
+            label.setObjectName("CardTitle")
             return label
 
         # 1. Numbering Formats Group (3 Columns Modern)
+        # 1. Numbering Formats Group (3 Columns Modern)
         num_card = QFrame()
         num_card.setObjectName("CustomCard")
-        num_card.setStyleSheet(card_style)
+        # style handled by theme update
         num_card_layout = QVBoxLayout(num_card)
         num_card_layout.setContentsMargins(20, 20, 20, 20)
         num_card_layout.setSpacing(15)
@@ -91,7 +153,7 @@ class CustomizationTab(QWidget):
         # 2. Ticket Terms Group
         tkt_card = QFrame()
         tkt_card.setObjectName("CustomCard")
-        tkt_card.setStyleSheet(card_style)
+        # style handled by theme update
         tkt_card_layout = QVBoxLayout(tkt_card)
         tkt_card_layout.setContentsMargins(20, 20, 20, 20)
         tkt_card_layout.setSpacing(10)
@@ -113,7 +175,7 @@ class CustomizationTab(QWidget):
         # 3. Invoice Terms Group
         inv_card = QFrame()
         inv_card.setObjectName("CustomCard")
-        inv_card.setStyleSheet(card_style)
+        # style handled by theme update
         inv_card_layout = QVBoxLayout(inv_card)
         inv_card_layout.setContentsMargins(20, 20, 20, 20)
         inv_card_layout.setSpacing(10)
@@ -138,18 +200,10 @@ class CustomizationTab(QWidget):
         self.save_btn = QPushButton(f"  {self.lm.get('Common.save_settings', 'Save Settings')}  ")
         self.save_btn.setFixedHeight(45)
         self.save_btn.setMinimumWidth(200)
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3B82F6;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #2563EB; }
-            QPushButton:pressed { background-color: #1E40AF; }
-        """)
+        self.save_btn = QPushButton(f"  {self.lm.get('Common.save_settings', 'Save Settings')}  ")
+        self.save_btn.setFixedHeight(45)
+        self.save_btn.setMinimumWidth(200)
+        # style handled by theme update
         self.save_btn.clicked.connect(self._save_settings)
         btn_container.addWidget(self.save_btn)
         main_layout.addLayout(btn_container)
@@ -160,18 +214,7 @@ class CustomizationTab(QWidget):
 
     def _style_input(self, widget):
         widget.setFixedHeight(35)
-        widget.setStyleSheet("""
-            QLineEdit {
-                border: 1px solid palette(mid);
-                border-radius: 6px;
-                padding: 5px 10px;
-                background-color: palette(base);
-                color: palette(text);
-            }
-            QLineEdit:focus {
-                border: 2px solid #3B82F6;
-            }
-        """)
+        # Style handled by update_theme via stylesheet on parent
 
     def _load_settings(self):
         try:

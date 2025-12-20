@@ -1,56 +1,51 @@
-# GitHub Release Guide for MSA Updates
+# GitHub Guide: Professional "Private Code" Setup
 
-This guide will show you how to set up your GitHub repository so that your app's "Check for Updates" feature works correctly.
+To keep your source code 100% private but still allow users to get updates, we use a **Two-Repo Strategy**.
 
-## Phase 1: Create your Repository
+## 1. The Setup (Do this now)
 
-1.  **Sign in to GitHub**: Go to [github.com](https://github.com) and create an account if you don't have one.
-2.  **New Repository**: Click the **[+]** icon at the top right -> **New repository**.
-3.  **Name it**: Use the exact name we set in the code: `msa-desktop`.
-4.  **Set to Public**: It must be **Public** so the app can check for updates without needing a private key.
-5.  **Create**: Click **Create repository**.
+### A. Make your Code Private
 
-## Phase 2: Upload your Code (One-time)
+1.  Go to your repository: [github.com/treavorfang/msa-desktop](https://github.com/treavorfang/msa-desktop).
+2.  Click the **Settings** tab.
+3.  Scroll down to the **Danger Zone** at the bottom.
+4.  Click **Change visibility** -> **Make private**.
+    - _Your code is now hidden from the public!_
 
-If your code is not yet on GitHub, run these commands in your terminal (at `/Users/studiotai/PyProject/msa`):
+### B. Create a Public "Releases" Repo
 
-```bash
-git init
-git add .
-git commit -m "Initial commit with update system"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/msa-desktop.git
-git push -u origin main
-```
-
-_(Replace `YOUR_USERNAME` with your actual GitHub username)_
-
-## Phase 3: How to Publish an Update (The "Release")
-
-When you have a new version (e.g., `1.0.4`) and you want your users to get it:
-
-1.  **Go to your Repo**: Open `https://github.com/YOUR_USERNAME/msa-desktop` in your browser.
-2.  **Releases**: On the right side, click **Releases** -> **Create a new release**.
-3.  **Tag Version**: Click **Choose a tag** and type `v1.0.4` (or whatever your new version is). Then click **Create new tag**.
-4.  **Title**: Give it a title, like `MSA Public Release v1.0.4`.
-5.  **Description**: In the "Describe this release" box, type what has changed (e.g., "Fixed login bug"). These notes will show up in the app's Update dialog!
-6.  **Upload the Installer**: Drag and drop your new `.exe` (for Windows) or `.dmg` (for macOS) into the **Assets** box at the bottom.
-    - **Note**: The app looks for files ending in `.exe` or `.dmg`.
-7.  **Publish**: Click the green **Publish release** button.
-
-## ✅ DONE!
-
-Once published, any user who clicks **Check for Updates** in their app will see your new version and can download it immediately.
+1.  Click the **[+]** icon (top right) -> **New repository**.
+2.  Name it: **`msa-app-releases`**.
+3.  Set it to **Public**.
+    - _This repo will contain NO code, only your installer files._
 
 ---
 
-### ⚠️ Important Configuration Match
+## 2. Daily Workflow
 
-In your `src/app/config/config.py`, make sure the `GITHUB_USER` matches your real GitHub username:
+### To Save your Code (Private)
 
-```python
-GITHUB_USER = "your_actual_name" # Change this to your real GitHub username!
-GITHUB_REPO = "msa-desktop"
+Just run your usual commands to push to `msa-desktop`:
+
+```bash
+git add .
+git commit -m "Your changes"
+git push origin main
 ```
 
-If you change your username, you must update this file before building the next version!
+### To Send an Update (Public)
+
+When you have a new version (e.g., `v1.0.4`):
+
+1.  Go to the **`msa-app-releases`** repo on GitHub.
+2.  Click **Releases** -> **Create a new release**.
+3.  Set the Tag to `v1.0.4`.
+4.  **Upload the EXE or DMG installer** as an asset.
+5.  **Publish**.
+    - _The app will check THIS repo for updates, while your code stays safe in the private one._
+
+---
+
+## ⚠️ Important Note
+
+In your `src/app/config/config.py`, the `GITHUB_REPO_PUBLIC` is set to `msa-app-releases`. This is what the app uses to check for new files. Never put your code in the public repo!

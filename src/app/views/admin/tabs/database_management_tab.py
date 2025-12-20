@@ -32,6 +32,46 @@ class DatabaseManagementTab(QWidget):
         self._load_settings()
         self.refresh_backups()
         
+        # Theme
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self.update_theme)
+             self.update_theme(self.container.theme_controller.current_theme)
+        else:
+             self.update_theme('dark')
+             
+    def update_theme(self, theme_name):
+        if theme_name == 'dark':
+            text_color = "white"
+            input_bg = "#2D2D2D"
+            input_border = "#4B5563"
+            table_bg = "#1F2937"
+        else:
+            text_color = "#1F2937"
+            input_bg = "#F3F4F6"
+            input_border = "#D1D5DB"
+            table_bg = "#FFFFFF"
+            
+        # Update Table
+        if hasattr(self, 'table'):
+            self.table.setStyleSheet(f"QTableWidget {{ background-color: {table_bg}; color: {text_color}; border: none; }}")
+            
+        # Update Controls (LineEdit)
+        if hasattr(self, 'path_input'):
+            self.path_input.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {input_bg};
+                    color: {text_color};
+                    border: 1px solid {input_border};
+                    border-radius: 4px;
+                    padding: 4px;
+                }}
+            """)
+        
+        # Labels/Checkbox auto-inherit color usually if container has color, 
+        # but we might need to set it on self if using QWidget default
+        # self.setStyleSheet(f"color: {text_color};") # Be careful not to override specifics
+
+        
     def _init_backup_service(self):
         """Initialize or re-initialize backup service with configured path."""
         path = self.settings.value("database/backup_path")

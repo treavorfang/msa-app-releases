@@ -343,11 +343,10 @@ class TechnicianDetailsDialog(QDialog):
     
     def _on_edit(self):
         """Open edit dialog"""
-        from views.technician.technicians import TechniciansTab
         # We need to access the parent's edit method
-        if hasattr(self.parent(), 'show_edit_technician_dialog'):
+        if hasattr(self.parent(), 'show_add_technician_dialog'):
             self.accept()  # Close details dialog
-            self.parent().show_edit_technician_dialog(self.technician)
+            self.parent().show_add_technician_dialog(self.technician)
     
     def _show_bonus_dialog(self):
         """Show bonus management dialog"""

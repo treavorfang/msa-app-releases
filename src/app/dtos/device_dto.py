@@ -72,5 +72,17 @@ class DeviceDTO:
             'brand': self.brand,
             'model': self.model,
             'serial_number': self.serial_number,
-            'imei': self.imei
+            'imei': self.imei,
+            'color': self.color,
+            'passcode': self.passcode,
+            'lock_type': self.lock_type,
+            'condition': self.condition,
+            'status': self.status,
+            'barcode': self.barcode,
+            'customer_id': self.customer_id,
+            'branch_id': self.branch_id,
+            'is_deleted': self.is_deleted,
+            'received_at': self.received_at.isoformat() if hasattr(self.received_at, 'isoformat') else self.received_at,
+            'completed_at': self.completed_at.isoformat() if hasattr(self.completed_at, 'isoformat') else self.completed_at,
+            'deleted_at': self.deleted_at.isoformat() if hasattr(self.deleted_at, 'isoformat') else self.deleted_at
         }

@@ -64,7 +64,14 @@ class PurchaseOrderDTO:
         return {
             'po_id': self.id,
             'po_number': self.po_number,
+            'supplier_id': self.supplier_id,
             'status': self.status,
             'total_amount': float(self.total_amount),
-            'supplier_id': self.supplier_id
+            'notes': self.notes,
+            'branch_id': self.branch_id,
+            'created_by': self.created_by,
+            'items_count': len(self.items),
+            'order_date': self.order_date.isoformat() if hasattr(self.order_date, 'isoformat') else self.order_date,
+            'expected_delivery': self.expected_delivery.isoformat() if hasattr(self.expected_delivery, 'isoformat') else self.expected_delivery,
+            'received_date': self.received_date.isoformat() if hasattr(self.received_date, 'isoformat') else self.received_date
         }

@@ -63,5 +63,11 @@ class SupplierDTO:
             'contact_person': self.contact_person,
             'email': self.email,
             'phone': self.phone,
-            'tax_id': self.tax_id
+            'address': self.address,
+            'tax_id': self.tax_id,
+            'payment_terms': self.payment_terms,
+            'notes': self.notes,
+            'branch_id': self.branch_id,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if hasattr(self.created_at, 'isoformat') else self.created_at
         }

@@ -209,7 +209,7 @@ class PartDialog(QDialog):
                     self.part.id,
                     **part_data
                 )
-                message = f"Part '{part.name}' updated successfully!"
+                message = self.lm.get("Inventory.part_updated_success", "Part '{name}' updated successfully!").format(name=part.name)
             else:
                 # Create new part
                 part = self.container.part_controller.create_part(
@@ -224,9 +224,11 @@ class PartDialog(QDialog):
                     barcode=part_data['barcode'],
                     is_active=self.active_checkbox.isChecked()
                 )
-                message = f"Part '{part.name}' created successfully!\nSKU: {part.sku}\nBarcode: {part.barcode}"
+                message = self.lm.get("Inventory.part_created_success_detail", "Part '{name}' created successfully!\nSKU: {sku}\nBarcode: {barcode}").format(
+                    name=part.name, sku=part.sku, barcode=part.barcode
+                )
             
-            QMessageBox.information(self, "Success", message)
+            QMessageBox.information(self, self.lm.get("Common.success", "Success"), message)
             self.accept()
             
         except Exception as e:

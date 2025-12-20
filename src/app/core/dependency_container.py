@@ -318,6 +318,11 @@ class DependencyContainer:
     def credit_note_service(self):
         """Credit note management service."""
         return self._business_services.credit_note_service
+        
+    @property
+    def financial_service(self):
+        """Financial management service."""
+        return self._business_services.financial_service
     
     # ==================== Controller Properties ====================
     

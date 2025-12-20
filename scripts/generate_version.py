@@ -37,7 +37,7 @@ def get_git_info():
                 stderr=subprocess.DEVNULL
             ).decode('utf-8').strip()
         except subprocess.CalledProcessError:
-            tag = 'v1.0.2'  # Default if no tags
+            tag = 'v1.0.4'  # Default if no tags
         
         # Check if working directory is clean
         is_dirty = subprocess.call(
@@ -56,7 +56,7 @@ def get_git_info():
         return {
             'commit': 'unknown',
             'branch': 'unknown',
-            'tag': 'v1.0.3',
+            'tag': 'v1.0.4',
             'dirty': False
         }
 
@@ -99,7 +99,7 @@ def generate_version_file():
     git_info = get_git_info()
     build_number = get_build_number()
     build_date = datetime.datetime.now()
-    version_info = parse_version(git_info['tag'])
+    version_info = parse_version("v1.0.4") # Force 1.0.4 for release
     
     # Create version string
     version_string = f"{version_info['major']}.{version_info['minor']}.{version_info['patch']}"
@@ -172,7 +172,7 @@ def get_version_info():
 '''
     
     version_file.write_text(content)
-    print(f"✅ Generated version.py: {full_version}")
+    print(f"[OK] Generated version.py: {full_version}")
     
     # Also generate JSON version file for external tools
     json_file = Path(__file__).parent.parent / 'version.json'
@@ -189,18 +189,18 @@ def get_version_info():
     }
     
     json_file.write_text(json.dumps(version_data, indent=2))
-    print(f"✅ Generated version.json")
+    print(f"[OK] Generated version.json")
     
     return version_data
 
 
 if __name__ == '__main__':
-    print("🔧 Generating version information...")
+    print("Generating version information...")
     version_data = generate_version_file()
-    print(f"\n📦 Version: {version_data['full_version']}")
-    print(f"🏷️  Tag: {version_data['git']['tag']}")
-    print(f"🌿 Branch: {version_data['git']['branch']}")
-    print(f"📝 Commit: {version_data['git']['commit']}")
-    print(f"🔢 Build: {version_data['build']}")
-    print(f"📅 Date: {version_data['build_date']}")
-    print("\n✅ Version generation complete!")
+    print(f"\nVersion: {version_data['full_version']}")
+    print(f"Tag: {version_data['git']['tag']}")
+    print(f"Branch: {version_data['git']['branch']}")
+    print(f"Commit: {version_data['git']['commit']}")
+    print(f"Build: {version_data['build']}")
+    print(f"Date: {version_data['build_date']}")
+    print("\nVersion generation complete!")

@@ -11,13 +11,19 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QComboBox, QCheckBox, QFrame, QScrollArea,
     QGridLayout, QStackedWidget, QDialog, QTableWidget, 
-    QTableWidgetItem, QHeaderView, QMenu
+    QTableWidgetItem, QHeaderView, QMenu, QFileDialog
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QColor, QCursor
 from typing import List, Dict
-from decimal import Decimal
+try:
+    from decimal import Decimal, InvalidOperation
+except ImportError:
+    from decimal import Decimal
+    InvalidOperation = Exception # Fallback
+import csv
+from datetime import datetime
 from dtos.customer_dto import CustomerDTO
 from utils.validation.message_handler import MessageHandler
 from utils.validation.phone_formatter import phone_formatter
@@ -30,6 +36,7 @@ from core.events import (
     InvoiceCreatedEvent, InvoiceUpdatedEvent
 )
 from views.components.loading_overlay import LoadingOverlay
+from views.components.new_dashboard_widgets import is_dark_theme
 
 
 class ModernCustomersTab(QWidget):
@@ -230,9 +237,21 @@ class ModernCustomersTab(QWidget):
         refresh_btn.clicked.connect(self._load_customers)
         layout.addWidget(refresh_btn)
         
-        # Export button
+        # Export button with menu
         export_btn = QPushButton(f"📥 {self.lm.get('Common.export', 'Export')}")
-        export_btn.clicked.connect(self._export_customers)
+        export_menu = QMenu(self)
+        
+        # CSV Action
+        export_csv_action = QAction(self.lm.get("Customers.export_csv", "Export CSV"), self)
+        export_csv_action.triggered.connect(self._export_customers_csv)
+        export_menu.addAction(export_csv_action)
+        
+        # PDF Action
+        export_pdf_action = QAction(self.lm.get("Customers.export_pdf", "Export PDF"), self)
+        export_pdf_action.triggered.connect(self._export_customers_pdf)
+        export_menu.addAction(export_pdf_action)
+        
+        export_btn.setMenu(export_menu)
         layout.addWidget(export_btn)
         
         return layout
@@ -299,6 +318,17 @@ class ModernCustomersTab(QWidget):
         self.bulk_delete_btn.clicked.connect(self._bulk_delete_customers)
         self.customers_table.itemChanged.connect(self._update_bulk_buttons_state)
         
+        self._connect_theme_signal()
+
+    def _connect_theme_signal(self):
+        """Connect to theme change signal"""
+        if self.container and hasattr(self.container, 'theme_controller') and self.container.theme_controller:
+            if hasattr(self.container.theme_controller, 'theme_changed'):
+                self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme change"""
+        self._load_customers()
         # Table double click
         self.customers_table.doubleClicked.connect(self._on_table_double_click)
         
@@ -384,7 +414,19 @@ class ModernCustomersTab(QWidget):
             if self.invoice_controller:
                 server_balance = self.invoice_controller.get_customer_balance_info(customer_id)
                 if server_balance:
-                    balance_info = server_balance
+                    # Ensure all values are Decimal
+                    def safe_decimal(val):
+                        try:
+                            return Decimal(str(val))
+                        except (ValueError, TypeError, InvalidOperation):
+                            return Decimal('0.00')
+
+                    balance_info = {
+                        'total_invoices': server_balance.get('total_invoices', 0),
+                        'total_owed': safe_decimal(server_balance.get('total_owed', 0)),
+                        'total_credit': safe_decimal(server_balance.get('total_credit', 0)),
+                        'balance': safe_decimal(server_balance.get('balance', 0))
+                    }
         except Exception as e:
             print(f"Error calculating balance for customer {customer_id}: {e}")
             import traceback
@@ -499,11 +541,34 @@ class ModernCustomersTab(QWidget):
     
     def _create_customer_card(self, customer: CustomerDTO):
         """Create a customer card widget"""
+        # Theme colors
+        dark_mode = is_dark_theme(self)
+        
+        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
+        border_color = "#374151" if dark_mode else "#E5E7EB"
+        text_main = "white" if dark_mode else "#1F2937"
+        text_sub = "#9CA3AF" if dark_mode else "#6B7280"
+        
         card = QFrame()
         card.setObjectName("customerCard")
         card.setCursor(QCursor(Qt.PointingHandCursor))
         card.setMinimumHeight(200)
         card.setMaximumHeight(240)
+        
+        # Initial style is handled by _update_card_selection_style logic or here for base
+        # Logic in _update_card_selection_style will overwrite this, but we set base props here via stylesheet if needed
+        # Actually, we rely on _update_card_selection_style at the end, but let's set a base style to be safe
+        card.setStyleSheet(f"""
+            QFrame#customerCard {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 8px;
+            }}
+            QFrame#customerCard:hover {{
+                border-color: #3B82F6;
+                background-color: {bg_color};
+            }}
+        """)
         
         # Store customer data
         card.customer_id = customer.id
@@ -535,7 +600,7 @@ class ModernCustomersTab(QWidget):
         header = QHBoxLayout()
         
         name = QLabel(customer.name or "Unknown")
-        name.setStyleSheet("font-weight: bold; font-size: 14px;")
+        name.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {text_main};")
         header.addWidget(name)
         
         header.addStretch()
@@ -561,18 +626,18 @@ class ModernCustomersTab(QWidget):
         
         # Phone
         phone = QLabel(phone_formatter.format_phone_number(customer.phone) if customer.phone else "No phone")
-        phone.setStyleSheet("font-size: 12px; color: #9CA3AF;")
+        phone.setStyleSheet(f"font-size: 12px; color: {text_sub};")
         layout.addWidget(phone)
         
         # Email
         email = QLabel(customer.email if customer.email else "No email")
-        email.setStyleSheet("font-size: 11px; color: #6B7280;")
+        email.setStyleSheet(f"font-size: 11px; color: {text_sub};")
         layout.addWidget(email)
         
         # Address (truncated)
         if customer.address:
             address = QLabel(customer.address[:40] + "..." if len(customer.address) > 40 else customer.address)
-            address.setStyleSheet("font-size: 11px; color: #6B7280;")
+            address.setStyleSheet(f"font-size: 11px; color: {text_sub};")
             layout.addWidget(address)
         
         # Device count and last visit
@@ -582,7 +647,7 @@ class ModernCustomersTab(QWidget):
         
         details = f"{self.lm.get('Customers.device_count', 'Devices')}: {device_count} | {self.lm.get('Customers.last_visit', 'Last Visit')}: {last_visit}"
         details_label = QLabel(details)
-        details_label.setStyleSheet("font-size: 10px; color: #9CA3AF;")
+        details_label.setStyleSheet(f"font-size: 10px; color: {text_sub};")
         layout.addWidget(details_label)
         
         layout.addStretch()
@@ -667,25 +732,36 @@ class ModernCustomersTab(QWidget):
         
     def _update_card_selection_style(self, card, is_selected):
         """Update card style based on selection"""
+        # Theme colors
+        dark_mode = is_dark_theme(self)
+        
+        # Base colors
+        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
+        border_color = "#374151" if dark_mode else "#E5E7EB"
+        
+        # Selection colors
+        sel_bg = "#374151" if dark_mode else "#EFF6FF"
+        sel_border = "#3B82F6" # Stay blue
+        
         if is_selected:
-            card.setStyleSheet("""
-                QFrame#customerCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
+            card.setStyleSheet(f"""
+                QFrame#customerCard {{
+                    background-color: {sel_bg};
+                    border: 2px solid {sel_border};
                     border-radius: 8px;
-                }
+                }}
             """)
         else:
-            card.setStyleSheet("""
-                QFrame#customerCard {
-                    background-color: #1F2937;
-                    border: 1px solid #374151;
+            card.setStyleSheet(f"""
+                QFrame#customerCard {{
+                    background-color: {bg_color};
+                    border: 1px solid {border_color};
                     border-radius: 8px;
-                }
-                QFrame#customerCard:hover {
-                    border-color: #3B82F6;
-                    background-color: #374151;
-                }
+                }}
+                QFrame#customerCard:hover {{
+                    border-color: {sel_border};
+                    background-color: {bg_color};
+                }}
             """)
 
     def _on_background_clicked(self, event):
@@ -726,9 +802,244 @@ class ModernCustomersTab(QWidget):
             MessageHandler.show_info(self, "Bulk Delete", f"Deleted {len(selected_ids)} customers.")
             self._load_customers()
     
-    def _export_customers(self):
+    def _export_customers_csv(self):
         """Export customers to CSV"""
-        MessageHandler.show_info(self, "Coming Soon", "Export feature coming soon!")
+        if not hasattr(self, '_current_customer_list') or not self._current_customer_list:
+            MessageHandler.show_info(self, self.lm.get("Common.info", "Info"), self.lm.get("Customers.no_customers_to_export", "No customers to export"))
+            return
+            
+        path, _ = QFileDialog.getSaveFileName(
+            self, 
+            self.lm.get("Customers.save_csv", "Save CSV"), 
+            f"customers_{datetime.now().strftime('%Y%m%d')}.csv", 
+            "CSV Files (*.csv)"
+        )
+        
+        if not path:
+            return
+            
+        try:
+            with open(path, 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                # Write Headers
+                writer.writerow([
+                    self.lm.get("Customers.customer_name", "Name"),
+                    self.lm.get("Customers.customer_phone", "Phone"),
+                    self.lm.get("Customers.customer_email", "Email"),
+                    self.lm.get("Customers.customer_address", "Address"),
+                    self.lm.get("Customers.balance", "Balance"),
+                    self.lm.get("Customers.device_count", "Devices"),
+                    self.lm.get("Customers.last_visit", "Last Visit")
+                ])
+                
+                # Write Data
+                for customer in self._current_customer_list:
+                    # Calculate proper balance
+                    balance_info = self._calculate_customer_balance(customer.id)
+                    balance = balance_info['balance']
+                    devices = self.customer_controller.get_customer_devices(customer.id)
+                    
+                    writer.writerow([
+                        customer.name or "",
+                        phone_formatter.format_phone_number(customer.phone) if customer.phone else "",
+                        customer.email or "",
+                        customer.address or "",
+                        f"{balance:.2f}",
+                        len(devices),
+                        customer.updated_at.strftime("%Y-%m-%d") if customer.updated_at else ""
+                    ])
+            
+            MessageHandler.show_success(
+                self, 
+                self.lm.get("Common.success", "Success"), 
+                f"{self.lm.get('Customers.export_success', 'Successfully exported')} {len(self._current_customer_list)} {self.lm.get('Customers.customers', 'customers')}."
+            )
+            
+        except Exception as e:
+            MessageHandler.show_error(
+                self, 
+                self.lm.get("Common.error", "Error"), 
+                f"{self.lm.get('Customers.export_failed', 'Failed to export customers')}: {str(e)}"
+            )
+
+    def _export_customers_pdf(self):
+        """Export customers to PDF report using WeasyPrint"""
+        if not hasattr(self, '_current_customer_list') or not self._current_customer_list:
+            MessageHandler.show_info(self, self.lm.get("Common.info", "Info"), self.lm.get("Customers.no_customers_to_export", "No customers to export"))
+            return
+            
+        path, _ = QFileDialog.getSaveFileName(
+            self, 
+            self.lm.get("Customers.export_pdf", "Save PDF"), 
+            f"customers_report_{datetime.now().strftime('%Y%m%d')}.pdf", 
+            "PDF Files (*.pdf)"
+        )
+        
+        if not path:
+            return
+            
+        try:
+            # Import WeasyPrint (lazy import)
+            import platform
+            import os
+            
+            # MacOS Fix for WeasyPrint
+            if platform.system() == 'Darwin':
+                os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = '/opt/homebrew/lib:/usr/local/lib:/usr/lib:' + os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
+            
+            from weasyprint import HTML, CSS
+            
+            # Use fonts that support Burmese
+            font_family = "'Myanmar Text', 'Myanmar MN', 'Noto Sans Myanmar', 'Pyidaungsu', sans-serif"
+            
+            html = f"""
+            <html>
+            <head>
+                <style>
+                    @page {{ size: A4 landscape; margin: 15mm; }}
+                    body {{ font-family: {font_family}; }}
+                    h1 {{ color: #2980B9; margin-bottom: 5px; }}
+                    .meta {{ font-size: 10pt; color: #7F8C8D; margin-bottom: 20px; }}
+                    
+                    /* Summary Boxes */
+                    .summary-container {{ display: flex; gap: 20px; margin-bottom: 20px; }}
+                    .summary-box {{ 
+                        border: 1px solid #BDC3C7; 
+                        padding: 10px; 
+                        width: 200px;
+                        background-color: #ECF0F1;
+                        border-radius: 4px;
+                    }}
+                    .summary-label {{ font-size: 9pt; color: #7F8C8D; }}
+                    .summary-value {{ font-size: 11pt; font-weight: bold; color: #2C3E50; }}
+                    
+                    /* Table */
+                    table {{ width: 100%; border-collapse: collapse; font-size: 9pt; }}
+                    th {{ 
+                        background-color: #3498DB; 
+                        color: white; 
+                        padding: 8px; 
+                        text-align: left; 
+                        border: 1px solid #2980B9;
+                    }}
+                    td {{ 
+                        padding: 6px; 
+                        border: 1px solid #BDC3C7; 
+                        color: #2C3E50;
+                    }}
+                    tr:nth-child(even) {{ background-color: #F8F9F9; }}
+                    
+                    /* Balance Colors */
+                    .balance-debit {{ color: #E74C3C; font-weight: bold; }}
+                    .balance-credit {{ color: #27AE60; font-weight: bold; }}
+                    .balance-zero {{ color: #7F8C8D; }}
+                </style>
+            </head>
+            <body>
+                <h1>{self.lm.get("Customers.report_title", "CUSTOMERS REPORT")}</h1>
+                <div class="meta">{self.lm.get("Common.generated", "Generated")}: {datetime.now().strftime('%Y-%m-%d %H:%M')}</div>
+            """
+            
+            # Calculate Summary
+            total_customers = len(self._current_customer_list)
+            total_owed = Decimal('0.00') # Customers owe us (positive)
+            total_credit = Decimal('0.00') # We owe customers (negative)
+            net_balance = Decimal('0.00')
+            
+            for customer in self._current_customer_list:
+                balance_info = self._calculate_customer_balance(customer.id)
+                balance = balance_info['balance']
+                
+                if balance > 0:
+                    total_owed += balance
+                elif balance < 0:
+                    total_credit += abs(balance)
+                    
+                net_balance += balance
+            
+            # Add Summary Section
+            html += f"""
+                <div class="summary-container">
+                    <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Customers.total_customers", "Total Customers")}</div>
+                        <div class="summary-value">{total_customers}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Customers.total_receivable", "Total Receivable")}</div>
+                        <div class="summary-value" style="color: #E74C3C;">{self.cf.format(total_owed)}</div>
+                    </div>
+                     <div class="summary-box">
+                        <div class="summary-label">{self.lm.get("Customers.total_payable", "Total Payable")}</div>
+                        <div class="summary-value" style="color: #27AE60;">{self.cf.format(total_credit)}</div>
+                    </div>
+                </div>
+            """
+            
+            # Table Header
+            html += f"""
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{self.lm.get("Customers.customer_name", "Name")}</th>
+                            <th>{self.lm.get("Customers.customer_phone", "Phone")}</th>
+                            <th>{self.lm.get("Customers.customer_email", "Email")}</th>
+                            <th>{self.lm.get("Customers.customer_address", "Address")}</th>
+                            <th>{self.lm.get("Customers.device_count", "Devices")}</th>
+                            <th>{self.lm.get("Customers.balance", "Balance")}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
+            
+            # Table Rows
+            for customer in self._current_customer_list:
+                balance_info = self._calculate_customer_balance(customer.id)
+                balance = balance_info['balance']
+                devices = self.customer_controller.get_customer_devices(customer.id)
+                
+                balance_class = "balance-zero"
+                formatted_balance = self.cf.format(0)
+                
+                if balance > 0:
+                    balance_class = "balance-debit"
+                    formatted_balance = f"+{self.cf.format(balance)}"
+                elif balance < 0:
+                    balance_class = "balance-credit"
+                    formatted_balance = f"-{self.cf.format(abs(balance))}"
+                
+                html += f"""
+                    <tr>
+                        <td>{customer.name or ""}</td>
+                        <td>{phone_formatter.format_phone_number(customer.phone) if customer.phone else ""}</td>
+                        <td>{customer.email or ""}</td>
+                        <td>{customer.address or ""}</td>
+                        <td>{len(devices)}</td>
+                        <td class="{balance_class}">{formatted_balance}</td>
+                    </tr>
+                """
+                
+            html += """
+                    </tbody>
+                </table>
+            </body>
+            </html>
+            """
+            
+            # Generate PDF
+            HTML(string=html).write_pdf(target=path, stylesheets=[CSS(string="")])
+            
+            MessageHandler.show_success(
+                self, 
+                self.lm.get("Common.success", "Success"), 
+                f"{self.lm.get('Customers.export_success', 'Successfully exported')} {len(self._current_customer_list)} {self.lm.get('Customers.customers', 'customers')}."
+            )
+            
+        except Exception as e:
+            MessageHandler.show_error(
+                self, 
+                self.lm.get("Common.error", "Error"), 
+                f"{self.lm.get('Customers.export_failed', 'Failed to export to PDF')}: {str(e)}"
+            )
         
     def _on_table_context_menu(self, position):
         """Handle context menu for table"""

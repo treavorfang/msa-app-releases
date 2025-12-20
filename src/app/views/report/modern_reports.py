@@ -1,8 +1,8 @@
 # src/app/views/report/reports.py
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                              QComboBox, QDateEdit, QTableWidget, QTableWidgetItem, 
-                              QHeaderView, QLabel, QGroupBox, QTabWidget, QFrame,
-                              QGraphicsDropShadowEffect)
+                               QComboBox, QDateEdit, QTableWidget, QTableWidgetItem, 
+                               QHeaderView, QLabel, QGroupBox, QTabWidget, QFrame,
+                               QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt, QDate, QPropertyAnimation, QEasingCurve, QRect, Property
 from PySide6.QtGui import QColor, QPalette
 from datetime import datetime, timedelta

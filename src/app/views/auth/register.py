@@ -18,7 +18,7 @@ class RegisterView(QWidget):
         super().__init__()
         self.lm = language_manager
         self.setWindowTitle(f"{APP_SHORT_NAME} | {APP_VERSION}")
-        self.setFixedSize(420, 780) # Increased height for new fields
+        # self.setFixedSize(420, 780) # Removed fixed size for responsiveness
         self.setObjectName("registerView")
         self.setup_ui()
     

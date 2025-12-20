@@ -49,5 +49,9 @@ class WorkLogDTO:
         return {
             'log_id': self.id,
             'ticket_id': self.ticket_id,
-            'technician_id': self.technician_id
+            'technician_id': self.technician_id,
+            'work_performed': self.work_performed,
+            'start_time': self.start_time.isoformat() if hasattr(self.start_time, 'isoformat') else self.start_time,
+            'end_time': self.end_time.isoformat() if hasattr(self.end_time, 'isoformat') else self.end_time,
+            'duration_minutes': self.duration_minutes
         }

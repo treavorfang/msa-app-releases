@@ -65,6 +65,7 @@ ICON_PATHS = {
     'logout': os.path.join(ICON_DIR, "logout.png"),
     'logo': os.path.join(ICON_DIR, "logo.png"),
     'login_banner': os.path.join(ICON_DIR, "login_banner.png"),
+    'financial': os.path.join(ICON_DIR, "financial.png"),
 }
 
 # Theme
@@ -229,11 +230,11 @@ def get_sumatra_path():
 import datetime
 
 # ============ UPDATE CONFIGURATION ============
-# Placeholder for GitHub Releases API or a raw JSON file
-GITHUB_USER = "treavorfang" # Replace with actual GitHub username
-GITHUB_REPO = "msa-desktop"  # Replace with actual Repo name
-UPDATE_CHECK_URL = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/releases/latest"
-UPDATE_RELEASE_PAGE = f"https://github.com/treavorfang/{GITHUB_REPO}/releases"
+# Split between Private Source and Public Updates
+GITHUB_USER = "treavorfang"
+GITHUB_REPO_PUBLIC = "msa-app-releases"  # Only for EXE/DMG downloads
+UPDATE_CHECK_URL = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO_PUBLIC}/releases/latest"
+UPDATE_RELEASE_PAGE = f"https://github.com/treavorfang/{GITHUB_REPO_PUBLIC}/releases"
 
 def log_print_debug(message):
     """Log print-related debug messages to a file for troubleshooting"""

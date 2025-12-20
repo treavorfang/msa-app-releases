@@ -486,8 +486,8 @@ class CreateCustomerInvoiceDialog(QDialog):
             paid = self.amount_paid_input.value()
                 
             change = paid - remaining
-            if change < 0:
-                change = 0.0
+            # if change < 0:
+            #     change = 0.0
             self.change_due_label.setText(currency_formatter.format(change))
         except ValueError:
             pass

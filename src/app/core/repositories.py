@@ -19,6 +19,7 @@ from repositories.technician_repository import TechnicianRepository
 from repositories.purchase_return_repository import PurchaseReturnRepository
 from repositories.purchase_return_item_repository import PurchaseReturnItemRepository
 from repositories.credit_note_repository import CreditNoteRepository
+from repositories.financial_repository import FinancialRepository
 
 class Repositories:
     def __init__(self):
@@ -42,7 +43,9 @@ class Repositories:
         self._technician_repository = TechnicianRepository()
         self._purchase_return_repository = PurchaseReturnRepository()
         self._purchase_return_item_repository = PurchaseReturnItemRepository()
+        self._purchase_return_item_repository = PurchaseReturnItemRepository()
         self._credit_note_repository = CreditNoteRepository()
+        self._financial_repository = FinancialRepository()
 
     # Repository Properties
     @property
@@ -124,3 +127,7 @@ class Repositories:
     @property
     def credit_note_repository(self):
         return self._credit_note_repository
+        
+    @property
+    def financial_repository(self):
+        return self._financial_repository
