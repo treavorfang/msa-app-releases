@@ -67,6 +67,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('src/app/static', 'static'),
+        ('src/app/ui_mobile', 'ui_mobile'),
         ('src/app/config/*.ini', 'config'),
         ('src/app/config/languages', 'config/languages'),
         ('src/app/config/*.flags', 'config'),
