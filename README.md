@@ -64,7 +64,7 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ## 📥 Download & Installation
 
-### Latest Release: v1.0.6
+### Latest Release: v1.0.7
 
 **[Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/latest)**
 
@@ -85,26 +85,22 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ---
 
-## 🚀 What's New in v1.0.6
+## 🚀 What's New in v1.0.7
 
-### Critical Fixes
+### Added
 
-- 🔧 **Automatic database migration** - Fixes schema issues from v1.0.5
-- ✅ **Missing columns** - Adds user_id to technicians table
-- ✅ **Missing table** - Creates ticket_photos table
-- 📱 **Mobile UI fix** - Mobile interface now loads correctly via QR code
-- 🛠️ **Error fixes** - Resolves "no such column", "no such table", and "Not Found" errors
+- **Technician Management Improvements**: Added conditional "Old Password" requirement for technician self-updates while maintaining simple resets for admins.
+- **Mobile Enhancement**: Added "Save Changes" button to Ticket Repair tab for better user control.
+- **Admin Sync**: Automatic dashboard refresh when technicians are created or updated.
 
-### Mobile Access Now Working
+### Changed
 
-- Scan QR code from desktop app
-- Access mobile workbench from any device
-- Real-time ticket updates
-- Mobile-optimized interface
+- **UI Refinement**: Significantly improved "Edit Technician" dialog layout (increased size, stacked password fields) for better readability.
+- **Password Policy**: Enforced 6-character minimum for technician passwords.
 
-### For Existing Users
+### Fixed
 
-If you experienced database or mobile access errors with v1.0.5, this update will automatically fix them on first launch. Your data is completely safe.
+- **Mobile Cost Sync**: Resolved issue where `actual_cost` was not automatically recalculating when adding/removing parts on mobile.
 
 ---
 
@@ -195,6 +191,6 @@ MSA is proprietary software. All rights reserved.
 
 MSA is developed with ❤️ for mobile repair shop owners who want to streamline their business operations and focus on what matters most - serving their customers.
 
-**Version**: 1.0.6  
-**Build**: 930  
+**Version**: 1.0.7  
+**Build**: 951  
 **Release Date**: December 25, 2025
