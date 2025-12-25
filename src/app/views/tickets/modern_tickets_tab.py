@@ -89,6 +89,12 @@ class ModernTicketsTab(TicketBaseWidget):
         # Subscribe to events
         self._subscribe_to_events()
         
+        # Connect theme controller if available
+        if self.container and hasattr(self.container, 'theme_controller'):
+            self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+            # Initial theme set
+            QTimer.singleShot(0, lambda: self._on_theme_changed(self.container.theme_controller.current_theme))
+            
         # Initialize loading overlay
         self.loading_overlay = LoadingOverlay(self)
         
@@ -1770,3 +1776,8 @@ class ModernTicketsTab(TicketBaseWidget):
         ]
         for event_type in events:
             EventBus.unsubscribe(event_type, self._handle_ticket_event)
+
+    def _on_theme_changed(self, new_theme):
+        """Handle theme change"""
+        if hasattr(self, 'kanban_view'):
+            self.kanban_view.set_theme(new_theme)

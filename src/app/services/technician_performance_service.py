@@ -14,6 +14,8 @@ from models.technician_performance import TechnicianPerformance
 from models.technician import Technician
 from models.ticket import Ticket
 from models.technician_bonus import TechnicianBonus
+from models.invoice_item import InvoiceItem
+from models.repair_part import RepairPart
 
 
 class TechnicianPerformanceService(ITechnicianPerformanceService):
@@ -70,16 +72,41 @@ class TechnicianPerformanceService(ITechnicianPerformanceService):
         
         # Calculate revenue generated
         revenue = Decimal('0.00')
+        service_revenue = Decimal('0.00')
+        
         for ticket in completed_tickets:
-            if hasattr(ticket, 'total_cost') and ticket.total_cost:
-                revenue += Decimal(str(ticket.total_cost))
+            # Use actual_cost if available, fallback to estimated_cost
+            ticket_cost = Decimal(str(ticket.actual_cost if ticket.actual_cost > 0 else (ticket.estimated_cost or 0)))
+            revenue += ticket_cost
+            
+            # Calculate Commissionable Service Revenue
+            # 1. Try to find invoice items of type 'service' linked to this ticket
+            service_items = list(InvoiceItem.select().where(
+                (InvoiceItem.item_type == 'service') & 
+                (InvoiceItem.item_id == ticket.id)
+            ))
+            
+            if service_items:
+                ticket_service_charge = sum(Decimal(str(item.total)) for item in service_items)
+            else:
+                # 2. Fallback: Estimate service charge (Total Cost - Parts Retail Estimate)
+                # We use 1.5x markup on part cost as a default business rule fallback
+                parts_used = RepairPart.select().where(RepairPart.ticket == ticket.id)
+                parts_retail_est = Decimal('0.00')
+                for rp in parts_used:
+                    if rp.part:
+                        parts_retail_est += Decimal(str(rp.part.cost_price)) * rp.quantity * Decimal('1.5')
+                
+                ticket_service_charge = max(Decimal('0.00'), ticket_cost - parts_retail_est)
+            
+            service_revenue += ticket_service_charge
         
         perf.revenue_generated = revenue
         
-        # Calculate commission earned
+        # Calculate commission earned ONLY from service revenue
         technician = Technician.get_by_id(technician_id)
         commission_rate = Decimal(str(technician.commission_rate or 0)) / Decimal('100')
-        perf.commission_earned = revenue * commission_rate
+        perf.commission_earned = service_revenue * commission_rate
         
         # Calculate bonuses
         bonuses = TechnicianBonus.select().where(

@@ -45,7 +45,8 @@ class RoleService(IRoleService):
         # Define all available permissions in the system.
         # Format: (code, name, category, description)
         all_permissions = [
-            # System / Admin
+            # System / Auth
+            ('auth:login', 'Login Access', 'system', 'Ability to log into the application'),
             ('admin:access', 'Admin Access', 'system', 'Access to admin dashboard'),
             ('settings:manage', 'Manage Settings', 'system', 'Configure system settings'),
             ('users:manage', 'Manage Users', 'users', 'Create and manage users'),
@@ -109,6 +110,7 @@ class RoleService(IRoleService):
             'manager': {
                 'desc': 'Manager with oversight capabilities',
                 'perms': [
+                    'auth:login',
                     'reports:view', 'reports:export', 'reports:financial',
                     'tickets:view', 'tickets:create', 'tickets:edit', 'tickets:assign',
                     'invoices:view', 'invoices:create', 'invoices:edit',
@@ -122,6 +124,7 @@ class RoleService(IRoleService):
             'staff': {
                 'desc': 'Front desk staff or standard user',
                 'perms': [
+                    'auth:login',
                     'tickets:view', 'tickets:create', 'tickets:edit',
                     'invoices:view', 'invoices:create',
                     'customers:view', 'customers:manage',
@@ -131,6 +134,7 @@ class RoleService(IRoleService):
             'technician': {
                 'desc': 'Repair technician',
                 'perms': [
+                    'auth:login',
                     'tickets:view', 'tickets:edit', # View and update their tickets
                     'inventory:view'
                 ]

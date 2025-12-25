@@ -34,14 +34,22 @@ class InputValidator(QObject):
     }
 
     @staticmethod
-    def validate_password_complexity(password: str) -> Dict[str, Tuple[bool, str]]:
+    def validate_password_complexity(password: str, is_local: bool = False) -> Dict[str, Tuple[bool, str]]:
         """Comprehensive password complexity validation with detailed feedback."""
         results = {}
         
+        min_len = 4 if is_local else InputValidator.MIN_PASSWORD_LENGTH
+        
         if not password:
-            return {
-                'length': (False, f"Minimum {InputValidator.MIN_PASSWORD_LENGTH} characters"),
+            base_results = {
+                'length': (False, f"Minimum {min_len} characters"),
                 'max_length': (True, f"Maximum {InputValidator.MAX_PASSWORD_LENGTH} characters"),
+            }
+            
+            if is_local:
+                return base_results
+                
+            base_results.update({
                 'upper': (False, "At least one uppercase letter"),
                 'lower': (False, "At least one lowercase letter"),
                 'digit': (False, "At least one digit"),
@@ -50,12 +58,13 @@ class InputValidator(QObject):
                 'unique': (False, f"At least {InputValidator.COMPLEXITY_REQUIREMENTS['min_unique']} unique characters"),
                 'common': (True, "Not a commonly used password"),
                 'sequential': (True, "No sequential characters (e.g., '1234', 'abcd')"),
-            }
+            })
+            return base_results
         
         # Length check
         results['length'] = (
-            len(password) >= InputValidator.MIN_PASSWORD_LENGTH,
-            f"Minimum {InputValidator.MIN_PASSWORD_LENGTH} characters"
+            len(password) >= min_len,
+            f"Minimum {min_len} characters"
         )
         
         # Maximum length
@@ -64,6 +73,9 @@ class InputValidator(QObject):
             f"Maximum {InputValidator.MAX_PASSWORD_LENGTH} characters"
         )
         
+        if is_local:
+            return results
+
         # Character diversity
         results['upper'] = (
             any(c.isupper() for c in password),
@@ -124,23 +136,26 @@ class InputValidator(QObject):
         return results
 
     @staticmethod
-    def validate_password(password: str) -> Tuple[bool, str]:
+    def validate_password(password: str, is_local: bool = False) -> Tuple[bool, str]:
         """Strong password validation with detailed feedback."""
         password = password.strip()
         
+        min_len = 4 if is_local else InputValidator.MIN_PASSWORD_LENGTH
+        
         # Basic length check
-        if len(password) < InputValidator.MIN_PASSWORD_LENGTH:
-            return False, f"Password must be at least {InputValidator.MIN_PASSWORD_LENGTH} characters"
+        if len(password) < min_len:
+            return False, f"Password must be at least {min_len} characters"
         
         if len(password) > InputValidator.MAX_PASSWORD_LENGTH:
             return False, f"Password must not exceed {InputValidator.MAX_PASSWORD_LENGTH} characters"
         
-        # Check against common passwords
-        if password.lower() in InputValidator.COMMON_PASSWORDS:
-            return False, "Password is too common and easily guessable"
+        if not is_local:
+            # Check against common passwords
+            if password.lower() in InputValidator.COMMON_PASSWORDS:
+                return False, "Password is too common and easily guessable"
         
         # Comprehensive complexity check
-        complexity = InputValidator.validate_password_complexity(password)
+        complexity = InputValidator.validate_password_complexity(password, is_local=is_local)
         
         # Check for any failed requirements
         failed_requirements = [
@@ -151,7 +166,7 @@ class InputValidator(QObject):
         if failed_requirements:
             return False, f"Password requirements not met: {', '.join(failed_requirements[:3])}"
         
-        return True, "Password is strong and secure"
+        return True, "Password meets requirements" if is_local else "Password is strong and secure"
 
     @staticmethod
     def is_probable_typo(domain: str) -> Tuple[bool, Optional[str]]:

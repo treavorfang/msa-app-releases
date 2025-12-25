@@ -58,6 +58,12 @@ class PurchaseOrderListTab(QWidget):
         # Header with title and view switcher
         header_layout = self._create_header()
         layout.addLayout(header_layout)
+
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
         
         # Summary Cards
         summary_layout = self._create_summary_cards()
@@ -82,6 +88,9 @@ class PurchaseOrderListTab(QWidget):
         self.view_stack.addWidget(self.list_view)
         
         layout.addWidget(self.view_stack, 1)
+
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
     
     def _create_header(self):
         """Create header with title and view switcher"""
@@ -466,20 +475,6 @@ class PurchaseOrderListTab(QWidget):
         
         status_color = self._get_status_color(po.status)
         
-        # Style card
-        card.setStyleSheet(f"""
-            QFrame#poCard {{
-                background-color: #1F2937;
-                border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#poCard:hover {{
-                border-color: #3B82F6;
-                background-color: #374151;
-            }}
-        """)
-        
         # Store PO data
         card.po_id = po.id
         card.status_color = status_color
@@ -510,6 +505,7 @@ class PurchaseOrderListTab(QWidget):
         header = QHBoxLayout()
         
         po_label = QLabel(po.po_number)
+        po_label.setObjectName("poLabel")
         po_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         header.addWidget(po_label)
         
@@ -531,17 +527,20 @@ class PurchaseOrderListTab(QWidget):
         # Supplier
         if po.supplier_name:
             supplier_label = QLabel(f"🏢 {po.supplier_name}")
-            supplier_label.setStyleSheet("color: #9CA3AF; font-size: 13px;")
+            supplier_label.setObjectName("metaLabel")
+            supplier_label.setStyleSheet("font-size: 13px;")
             layout.addWidget(supplier_label)
         
         # Date info
         date_label = QLabel(f"📅 {po.order_date.strftime('%Y-%m-%d')}")
-        date_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        date_label.setObjectName("metaLabel")
+        date_label.setStyleSheet("font-size: 12px;")
         layout.addWidget(date_label)
         
         if po.expected_delivery:
             delivery_label = QLabel(f"🚚 Expected: {po.expected_delivery.strftime('%Y-%m-%d')}")
-            delivery_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            delivery_label.setObjectName("metaLabel")
+            delivery_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(delivery_label)
         
         layout.addStretch()
@@ -552,7 +551,7 @@ class PurchaseOrderListTab(QWidget):
         layout.addWidget(amount_label)
         
         # Initial style
-        self._update_card_selection_style(card, po.id in self.selected_pos)
+        self._update_card_style(card, po.id in self.selected_pos)
         
         return card
     
@@ -599,6 +598,23 @@ class PurchaseOrderListTab(QWidget):
     def _on_filter(self):
         """Handle status filter change"""
         self._load_purchase_orders()
+        
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_cards_style()
+        
+    def _update_all_cards_style(self):
+        """Update style for all cards"""
+        # Ensure cards_layout exists before iterating
+        if not hasattr(self, 'cards_layout'):
+            return 
+            
+        for i in range(self.cards_layout.count()):
+            item = self.cards_layout.itemAt(i)
+            if item and item.widget():
+                card = item.widget()
+                self._update_card_style(card, card.po_id in self.selected_pos)
     
     def _on_new(self):
         """Create new purchase order"""
@@ -609,42 +625,53 @@ class PurchaseOrderListTab(QWidget):
         """Handle card click (toggle selection)"""
         if po.id in self.selected_pos:
             self.selected_pos.remove(po.id)
-            self._update_card_selection_style(card, False)
+            self._update_card_style(card, False)
         else:
             self.selected_pos.append(po.id)
-            self._update_card_selection_style(card, True)
+            self._update_card_style(card, True)
             
     def _on_card_double_clicked(self, po):
         """Handle card double click (open details)"""
         dialog = PurchaseOrderDialog(self.container, po, parent=self)
         dialog.exec()
             
-    def _update_card_selection_style(self, card, is_selected):
-        """Update card style based on selection"""
-        status_color = getattr(card, 'status_color', '#3B82F6')
+    def _update_card_style(self, card, is_selected):
+        """Update card style based on selection and theme"""
+        is_dark = self.current_theme == 'dark'
         
-        if is_selected:
-            card.setStyleSheet("""
-                QFrame#poCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
-                    border-radius: 8px;
-                    padding: 12px;
-                }
-            """)
-        else:
-            card.setStyleSheet(f"""
-                QFrame#poCard {{
-                    background-color: #1F2937;
-                    border: 1px solid #374151;
-                    border-radius: 8px;
-                    padding: 12px;
-                }}
-                QFrame#poCard:hover {{
-                    border-color: #3B82F6;
-                    background-color: #374151;
-                }}
-            """)
+        if is_dark:
+            bg_color = "#374151" if is_selected else "#1F2937"
+            border_color = "#3B82F6" if is_selected else "#374151"
+            hover_bg = "#374151"
+            hover_border = "#3B82F6"
+            text_color = "white"
+            meta_color = "#9CA3AF" # Gray 400
+        else: # Light
+            bg_color = "#EFF6FF" if is_selected else "#FFFFFF" # Blue 50 or White
+            border_color = "#3B82F6" if is_selected else "#E5E7EB" # Blue 500 or Gray 200
+            hover_bg = "#F9FAFB" # Gray 50
+            hover_border = "#3B82F6"
+            text_color = "#111827" # Gray 900
+            meta_color = "#4B5563" # Gray 600
+
+        card.setStyleSheet(f"""
+            QFrame#poCard {{
+                background-color: {bg_color};
+                border: {'2px' if is_selected else '1px'} solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#poCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg if not is_selected else bg_color};
+            }}
+            QLabel#poLabel {{
+                color: {text_color};
+            }}
+            QLabel#metaLabel {{
+                color: {meta_color};
+            }}
+        """)
 
     def _on_background_clicked(self, event):
         """Handle click on background to deselect all"""
@@ -659,7 +686,7 @@ class PurchaseOrderListTab(QWidget):
         for i in range(self.cards_layout.count()):
             item = self.cards_layout.itemAt(i)
             if item and item.widget():
-                self._update_card_selection_style(item.widget(), False)
+                self._update_card_style(item.widget(), False)
     
     def _on_table_double_click(self, index):
         """Handle table double click"""

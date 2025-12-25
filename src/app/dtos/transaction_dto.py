@@ -13,6 +13,7 @@ class TransactionDTO:
     type: str = ""
     category_id: Optional[int] = None
     category_name: Optional[str] = None
+    category_color: Optional[str] = None
     description: Optional[str] = None
     payment_method: str = "cash"
     reference_id: Optional[str] = None
@@ -30,6 +31,7 @@ class TransactionDTO:
             type=transaction.type,
             category_id=transaction.category.id if transaction.category else None,
             category_name=transaction.category.name if transaction.category else None,
+            category_color=getattr(transaction.category, 'color', '#666666') if transaction.category else '#666666',
             description=transaction.description,
             payment_method=transaction.payment_method,
             reference_id=transaction.reference_id,

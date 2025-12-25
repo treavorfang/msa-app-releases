@@ -53,6 +53,12 @@ class InvoiceListTab(QWidget):
         # Header with title and view switcher
         header_layout = self._create_header()
         layout.addLayout(header_layout)
+
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
         
         # Summary Cards
         summary_layout = self._create_summary_cards()
@@ -77,6 +83,9 @@ class InvoiceListTab(QWidget):
         self.view_stack.addWidget(self.list_view)
         
         layout.addWidget(self.view_stack, 1)
+
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
     
     def _create_header(self):
         """Create header with title and view switcher"""
@@ -459,20 +468,6 @@ class InvoiceListTab(QWidget):
         status_color = self._get_status_color(invoice.status)
         card.status_color = status_color # Store for selection styling
         
-        # Style card
-        card.setStyleSheet(f"""
-            QFrame#invoiceCard {{
-                background-color: #1F2937;
-                border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#invoiceCard:hover {{
-                border-color: {status_color};
-                background-color: #374151;
-            }}
-        """)
-        
         # Store invoice data
         card.invoice_id = invoice.id
         
@@ -502,6 +497,7 @@ class InvoiceListTab(QWidget):
         header = QHBoxLayout()
         
         invoice_label = QLabel(invoice.invoice_number)
+        invoice_label.setObjectName("invoiceLabel")
         invoice_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         header.addWidget(invoice_label)
         
@@ -523,23 +519,27 @@ class InvoiceListTab(QWidget):
         # Supplier and PO
         if invoice.supplier_name:
             supplier_label = QLabel(f"🏢 {invoice.supplier_name}")
-            supplier_label.setStyleSheet("color: #9CA3AF; font-size: 13px;")
+            supplier_label.setObjectName("metaLabel")
+            supplier_label.setStyleSheet("font-size: 13px;")
             layout.addWidget(supplier_label)
         
         if invoice.po_number:
             po_label = QLabel(f"📦 PO: {invoice.po_number}")
-            po_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            po_label.setObjectName("metaLabel")
+            po_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(po_label)
         
         # Dates
         invoice_date = invoice.invoice_date.strftime("%Y-%m-%d") if invoice.invoice_date else "N/A"
         date_label = QLabel(f"📅 {invoice_date}")
-        date_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        date_label.setObjectName("metaLabel")
+        date_label.setStyleSheet("font-size: 12px;")
         layout.addWidget(date_label)
         
         if invoice.due_date:
             due_label = QLabel(f"⏰ Due: {invoice.due_date.strftime('%Y-%m-%d')}")
-            due_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            due_label.setObjectName("metaLabel")
+            due_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(due_label)
         
         layout.addStretch()
@@ -561,7 +561,7 @@ class InvoiceListTab(QWidget):
         layout.addLayout(footer)
         
         # Initial style
-        self._update_card_selection_style(card, invoice.id in self.selected_invoices)
+        self._update_card_style(card, invoice.id in self.selected_invoices)
         
         return card
     
@@ -624,15 +624,32 @@ class InvoiceListTab(QWidget):
     def _on_filter(self):
         """Handle filter change"""
         self._load_invoices()
+        
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_cards_style()
+        
+    def _update_all_cards_style(self):
+        """Update style for all cards"""
+        # Ensure cards_layout exists before iterating
+        if not hasattr(self, 'cards_layout'):
+            return 
+            
+        for i in range(self.cards_layout.count()):
+            item = self.cards_layout.itemAt(i)
+            if item and item.widget():
+                card = item.widget()
+                self._update_card_style(card, card.invoice_id in self.selected_invoices)
     
     def _on_card_clicked(self, card, invoice):
         """Handle card click (toggle selection)"""
         if invoice.id in self.selected_invoices:
             self.selected_invoices.remove(invoice.id)
-            self._update_card_selection_style(card, False)
+            self._update_card_style(card, False)
         else:
             self.selected_invoices.append(invoice.id)
-            self._update_card_selection_style(card, True)
+            self._update_card_style(card, True)
             
     def _on_card_double_clicked(self, invoice):
         """Handle card double click (open edit dialog)"""
@@ -641,48 +658,44 @@ class InvoiceListTab(QWidget):
         if dialog.exec():
             self._load_invoices()
             
-    def _update_card_selection_style(self, card, is_selected):
-        """Update card style based on selection"""
-        # We need to get the status color again or store it on the card
-        # For now, let's try to extract it from the status badge or re-calculate
-        # Ideally, we should store it on the card
+    def _update_card_style(self, card, is_selected):
+        """Update card style based on selection and theme"""
+        status_color = getattr(card, 'status_color', '#3B82F6')
+        is_dark = self.current_theme == 'dark'
         
-        # Re-calculate status color (safest)
-        # We need the invoice object or status. 
-        # The card has invoice_id, but not the full invoice object easily accessible unless we stored it.
-        # Let's assume we can get it or use a default.
-        # Actually, let's just use a standard selection border.
-        
-        if is_selected:
-            card.setStyleSheet("""
-                QFrame#invoiceCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
-                    border-radius: 8px;
-                    padding: 12px;
-                }
-            """)
-        else:
-            # Restore hover effect. We need the status color for the hover border.
-            # Since we don't have it easily here without passing it, we'll use a generic hover
-            # or we can try to find the status badge widget and get its background color, but that's brittle.
-            # Let's use a generic blue hover for now, or maybe we can store status_color on the card in _create_invoice_card
-            
-            # Better approach: Store status_color on the card
-            status_color = getattr(card, 'status_color', '#3B82F6')
-            
-            card.setStyleSheet(f"""
-                QFrame#invoiceCard {{
-                    background-color: #1F2937;
-                    border: 1px solid #374151;
-                    border-radius: 8px;
-                    padding: 12px;
-                }}
-                QFrame#invoiceCard:hover {{
-                    border-color: {status_color};
-                    background-color: #374151;
-                }}
-            """)
+        if is_dark:
+            bg_color = "#374151" if is_selected else "#1F2937"
+            border_color = "#3B82F6" if is_selected else "#374151"
+            hover_bg = "#374151"
+            hover_border = status_color
+            text_color = "white"
+            meta_color = "#9CA3AF" # Gray 400
+        else: # Light
+            bg_color = "#EFF6FF" if is_selected else "#FFFFFF" # Blue 50 or White
+            border_color = "#3B82F6" if is_selected else "#E5E7EB" # Blue 500 or Gray 200
+            hover_bg = "#F9FAFB" # Gray 50
+            hover_border = status_color
+            text_color = "#111827" # Gray 900
+            meta_color = "#4B5563" # Gray 600
+
+        card.setStyleSheet(f"""
+            QFrame#invoiceCard {{
+                background-color: {bg_color};
+                border: {'2px' if is_selected else '1px'} solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#invoiceCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg if not is_selected else bg_color};
+            }}
+            QLabel#invoiceLabel {{
+                color: {text_color};
+            }}
+            QLabel#metaLabel {{
+                color: {meta_color};
+            }}
+        """)
 
     def _on_background_clicked(self, event):
         """Handle click on background to deselect all"""
@@ -697,7 +710,7 @@ class InvoiceListTab(QWidget):
         for i in range(self.cards_layout.count()):
             item = self.cards_layout.itemAt(i)
             if item and item.widget():
-                self._update_card_selection_style(item.widget(), False)
+                self._update_card_style(item.widget(), False)
     
     def _on_table_double_click(self, index):
         """Handle table double click"""

@@ -42,18 +42,20 @@ class FontLoader:
         font_extensions = ('.ttf', '.otf', '.ttc')
         loaded_count = 0
         
+        # Batch add all fonts first
         for filename in os.listdir(fonts_dir):
             if filename.lower().endswith(font_extensions):
                 font_path = os.path.join(fonts_dir, filename)
                 font_id = QFontDatabase.addApplicationFont(font_path)
                 
                 if font_id != -1:
-                    families = QFontDatabase.applicationFontFamilies(font_id)
-                    cls._font_families.extend(families)
                     loaded_count += 1
-                    print(f"Loaded font: {filename} -> {families}")
                 else:
                     print(f"Warning: Failed to load font: {filename}")
+        
+        # Only query families once if needed, or get all families
+        # This is more efficient than querying after every addApplicationFont
+        cls._font_families = QFontDatabase.families(QFontDatabase.WritingSystem.Any)
         
         print(f"Successfully loaded {loaded_count} font file(s)")
         cls._fonts_loaded = True
@@ -73,6 +75,7 @@ class FontLoader:
         # Check if Inter is available
         if 'Inter' in cls._font_families or 'Inter Variable' in cls._font_families:
             return 'Inter'
+
         
         # Fallback to first loaded font or system default
         if cls._font_families:

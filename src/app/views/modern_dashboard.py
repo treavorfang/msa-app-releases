@@ -257,6 +257,23 @@ class ModernDashboardTab(QWidget):
         new_customer_btn.clicked.connect(self._on_new_customer)
         layout.addWidget(new_customer_btn)
         
+        # Mobile App button
+        mobile_app_btn = QPushButton(f"📱 {self.lm.get('Dashboard.mobile_app', 'Mobile App')}")
+        mobile_app_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #F59E0B;
+                color: black;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #D97706;
+            }
+        """)
+        mobile_app_btn.clicked.connect(self._on_mobile_pairing)
+        layout.addWidget(mobile_app_btn)
+        
         layout.addStretch()
         
         return layout
@@ -403,6 +420,12 @@ class ModernDashboardTab(QWidget):
             user_id=self.user.id,
             parent=self
         )
+    
+    def _on_mobile_pairing(self):
+        """Handle mobile app pairing button."""
+        from views.mobile_pairing_dialog import MobilePairingDialog
+        dialog = MobilePairingDialog(self)
+        dialog.exec()
     
     def _on_view_all_tickets(self):
         """Navigate to tickets tab"""

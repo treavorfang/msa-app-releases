@@ -37,7 +37,7 @@ def get_git_info():
                 stderr=subprocess.DEVNULL
             ).decode('utf-8').strip()
         except subprocess.CalledProcessError:
-            tag = 'v1.0.4'  # Default if no tags
+            tag = 'v1.0.5'  # Default if no tags
         
         # Check if working directory is clean
         is_dirty = subprocess.call(
@@ -56,7 +56,7 @@ def get_git_info():
         return {
             'commit': 'unknown',
             'branch': 'unknown',
-            'tag': 'v1.0.4',
+            'tag': 'v1.0.5',
             'dirty': False
         }
 
@@ -99,7 +99,7 @@ def generate_version_file():
     git_info = get_git_info()
     build_number = get_build_number()
     build_date = datetime.datetime.now()
-    version_info = parse_version("v1.0.4") # Force 1.0.4 for release
+    version_info = parse_version("v1.0.5") # Force 1.0.5 for release
     
     # Create version string
     version_string = f"{version_info['major']}.{version_info['minor']}.{version_info['patch']}"

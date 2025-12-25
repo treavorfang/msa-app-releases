@@ -248,7 +248,7 @@ class ModernFinancialTab(QWidget):
         
         self.card_income.update_value(self.cf.format(summary['total_income']))
         self.card_expense.update_value(self.cf.format(summary['total_expense']))
-        self.card_balance.update_value(self.cf.format(summary['net_balance']))
+        self.card_balance.update_value(self.cf.format(summary.get('net_profit', 0)))
         
         # 2. Update Chart
         expense_breakdown = self.financial_service.get_expense_breakdown(start_date, end_date, self.current_branch_id)
@@ -480,7 +480,7 @@ class ModernFinancialTab(QWidget):
                     </div>
                     <div class="summary-box">
                         <div class="summary-label">{self.lm.get("Financial.net_balance", "Net Balance")}</div>
-                        <div class="summary-value" style="color: #3B82F6;">{self.cf.format(summary['net_balance'])}</div>
+                        <div class="summary-value" style="color: #3B82F6;">{self.cf.format(summary.get('net_profit', 0))}</div>
                     </div>
                 </div>
             """

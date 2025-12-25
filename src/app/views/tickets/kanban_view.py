@@ -20,7 +20,102 @@ class KanbanView(TicketBaseWidget):
         super().__init__(parent)
         self.kanban_columns = {}
         self.lm = language_manager  # Initialize language manager
+        self.current_theme = 'dark' # Default theme
         self._setup_ui()
+        
+    def set_theme(self, theme_name):
+        """Set the current theme"""
+        self.current_theme = 'dark' if theme_name == 'dark' else 'light'
+        self._update_all_styles()
+
+    def _get_theme_colors(self):
+        """Get colors based on current theme"""
+        is_dark = self.current_theme == 'dark'
+        return {
+            'bg_primary': '#1F2937' if is_dark else '#FFFFFF',
+            'bg_secondary': '#374151' if is_dark else '#F3F4F6',
+            'bg_tertiary': '#4B5563' if is_dark else '#E5E7EB',
+            'text_primary': 'white' if is_dark else '#111827',
+            'text_secondary': '#9CA3AF' if is_dark else '#6B7280',
+            'border': '#4B5563' if is_dark else '#E5E7EB',
+            'border_hover': '#3B82F6', # Blue
+            'border_selected': '#3B82F6',
+            'card_bg': '#374151' if is_dark else '#FFFFFF',
+            'card_bg_hover': '#4B5563' if is_dark else '#F9FAFB', # Slightly darker/lighter
+            'count_bg': '#374151' if is_dark else '#E5E7EB',
+            'count_text': 'white' if is_dark else '#374151'
+        }
+
+    def _update_all_styles(self):
+        """Update styles for all elements"""
+        colors = self._get_theme_colors()
+        
+        # Update columns
+        for status_key, column in self.kanban_columns.items():
+            # Update header title color
+            header_layout = column.layout().itemAt(0).layout()
+            title_label = header_layout.itemAt(0).widget()
+            title_label.setStyleSheet(f"""
+                font-size: 13px;
+                font-weight: bold;
+                color: {self.get_status_color(status_key)};
+            """)
+            
+            # Update count label
+            count_label = header_layout.itemAt(1).widget()
+            count_label.setStyleSheet(f"""
+                background-color: {colors['count_bg']};
+                color: {colors['count_text']};
+                padding: 2px 6px;
+                border-radius: 8px;
+                font-size: 11px;
+                font-weight: bold;
+            """)
+            
+            # Update cards in this column
+            cards_container = column.findChild(QWidget, f"kanban_cards_{status_key}")
+            if cards_container:
+                layout = cards_container.layout()
+                for i in range(layout.count()):
+                    item = layout.itemAt(i)
+                    if item.widget() and hasattr(item.widget(), 'ticket_dto'):
+                        card = item.widget()
+                        # Update card background/border
+                        # We don't know is_selected easily, but we can check if border is blue?
+                        # Or just assume false for now, parent handles selection refresh usually.
+                        # Ideally, we should check existing style sheet? 
+                        # Actually, better to check if ticket id is in parent.selected_tickets? 
+                        # But we don't have access to parent.selected_tickets easily.
+                        
+                        # Workaround: Check object name or property?
+                        # Let's just default to unselected style for immediate refresh, 
+                        # or check if "border: 2px" is present in current stylesheet.
+                        current_style = card.styleSheet()
+                        is_selected = "border: 2px" in current_style
+                        self.update_card_style(card, is_selected)
+                        
+                        # Update labels inside card
+                        card_layout = card.layout()
+                        if card_layout:
+                            # 0: Ticket Num
+                            ticket_num_item = card_layout.itemAt(0)
+                            if ticket_num_item and ticket_num_item.widget():
+                                ticket_num_item.widget().setStyleSheet(f"font-weight: bold; font-size: 12px; color: {colors['text_primary']};")
+                            
+                            # 1: Customer
+                            cust_item = card_layout.itemAt(1)
+                            if cust_item and cust_item.widget():
+                                cust_item.widget().setStyleSheet(f"font-size: 11px; color: {colors['text_secondary']};")
+                                
+                            # 2: Issue
+                            issue_item = card_layout.itemAt(2)
+                            if issue_item and issue_item.widget():
+                                issue_item.widget().setStyleSheet(f"font-size: 10px; color: {colors['text_secondary']};")
+                            
+                            # 3: Technician
+                            tech_item = card_layout.itemAt(3)
+                            if tech_item and tech_item.widget():
+                                tech_item.widget().setStyleSheet(f"font-size: 10px; color: {colors['text_secondary']};")
         
     def _setup_ui(self):
         """Setup the Kanban UI"""
@@ -67,6 +162,7 @@ class KanbanView(TicketBaseWidget):
         # Header
         header = QHBoxLayout()
         title = QLabel(status_label)
+        colors = self._get_theme_colors()
         title.setStyleSheet(f"""
             font-size: 13px;
             font-weight: bold;
@@ -76,9 +172,9 @@ class KanbanView(TicketBaseWidget):
         
         count_label = QLabel("0")
         count_label.setObjectName(f"kanban_count_{status_key}")
-        count_label.setStyleSheet("""
-            background-color: #374151;
-            color: white;
+        count_label.setStyleSheet(f"""
+            background-color: {colors['count_bg']};
+            color: {colors['count_text']};
             padding: 2px 6px;
             border-radius: 8px;
             font-size: 11px;
@@ -184,51 +280,74 @@ class KanbanView(TicketBaseWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         
         # Ticket number
+        colors = self._get_theme_colors()
         ticket_num = QLabel(ticket.ticket_number)
-        ticket_num.setStyleSheet("font-weight: bold; font-size: 12px;")
+        ticket_num.setStyleSheet(f"font-weight: bold; font-size: 12px; color: {colors['text_primary']};")
         layout.addWidget(ticket_num)
         
         # Customer
         customer = QLabel(ticket.customer.name if ticket.customer else self.lm.get("Tickets.no_customer", "No Customer"))
-        customer.setStyleSheet("font-size: 11px; color: #9CA3AF;")
+        customer.setStyleSheet(f"font-size: 11px; color: {colors['text_secondary']};")
         layout.addWidget(customer)
         
         # Issue (truncated)
         issue = ticket.error[:40] + "..." if ticket.error and len(ticket.error) > 40 else (ticket.error or "")
         issue_label = QLabel(issue)
-        issue_label.setStyleSheet("font-size: 10px; color: #6B7280;")
+        issue_label.setStyleSheet(f"font-size: 10px; color: {colors['text_secondary']};")
         issue_label.setWordWrap(True)
         layout.addWidget(issue_label)
         
         # Technician
         tech_name = ticket.technician_name or self.lm.get("Tickets.not_assigned", "Unassigned")
         tech = QLabel(f"👤 {tech_name}")
-        tech.setStyleSheet("font-size: 10px; color: #9CA3AF;")
+        colors = self._get_theme_colors()
+        tech.setStyleSheet(f"font-size: 10px; color: {colors['text_secondary']};")
         layout.addWidget(tech)
+        
+        # Customer
+        # Update colors for customer and issue labels previously created
+        # We need to recreate them or update them here to use variables
+        # Wait, the lines above (192, 199) are inside this method. I need to be careful with chunks.
+        # Let's replace the whole method content logic for labels below.
+        
+        # Actually, let's just update the specific text color lines in previous chunk if possible?
+        # No, I am in `_create_kanban_card`.
+        # I'll update `update_card_style` first.
         
         self.update_card_style(card, is_selected)
         
+        # Update internal labels colors
+        # We can't easily access them unless we stored them. 
+        # But wait, I am CREATING them right now.
+        
+        # Let's rewrite the label creation to use dynamic colors.
+        
         return card
+
+    # We need to make sure we replace the label styles above.
+    # I'll do a larger chunk replacement for `_create_kanban_card` to fix label colors.
         
     def update_card_style(self, card, is_selected):
         """Update card style based on selection"""
+        colors = self._get_theme_colors()
+        
         if is_selected:
-            card.setStyleSheet("""
-                QFrame#kanbanCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
+            card.setStyleSheet(f"""
+                QFrame#kanbanCard {{
+                    background-color: {colors['card_bg']};
+                    border: 2px solid {colors['border_selected']};
                     border-radius: 6px;
-                }
+                }}
             """)
         else:
-            card.setStyleSheet("""
-                QFrame#kanbanCard {
-                    background-color: #374151;
-                    border: 1px solid #4B5563;
+            card.setStyleSheet(f"""
+                QFrame#kanbanCard {{
+                    background-color: {colors['card_bg']};
+                    border: 1px solid {colors['border']};
                     border-radius: 6px;
-                }
-                QFrame#kanbanCard:hover {
-                    border-color: #3B82F6;
-                    background-color: #4B5563;
-                }
+                }}
+                QFrame#kanbanCard:hover {{
+                    border-color: {colors['border_hover']};
+                    background-color: {colors['card_bg_hover']};
+                }}
             """)

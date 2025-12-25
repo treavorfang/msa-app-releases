@@ -96,20 +96,29 @@ class ModernCategoryListTab(QWidget):
     """Modern categories management tab with hierarchical tree view"""
     data_changed = Signal()
     
-    def __init__(self, container, user=None):
-        super().__init__()
+    def __init__(self, container, user=None, parent=None):
+        super().__init__(parent)
         self.container = container
         self.controller = self.container.category_controller
         self.user = user
         self.lm = language_manager
         
         # Initialize timers
-        self.search_timer = QTimer()
+        self.search_timer = QTimer(self)
         self.search_timer.setInterval(300)
         self.search_timer.setSingleShot(True)
         
         self.setup_ui()
         self.connect_signals()
+        
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
+             
+        self._update_all_styles()
+        
         # self.refresh_tree()
         self._data_loaded = False
 
@@ -141,7 +150,9 @@ class ModernCategoryListTab(QWidget):
         # Search
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(self.lm.get("Categories.search_categories", "Search categories..."))
-        self.search_input.setStyleSheet("""
+        # Style will be set by _update_input_style
+        """
+        self.search_input.setStyleSheet(\"\"\"
             QLineEdit {
                 padding: 8px 12px;
                 border: 1px solid #374151;
@@ -151,7 +162,8 @@ class ModernCategoryListTab(QWidget):
             QLineEdit:focus {
                 border-color: #3B82F6;
             }
-        """)
+        \"\"\")
+        """
         toolbar_layout.addWidget(self.search_input)
         
         # Show deleted checkbox
@@ -196,7 +208,9 @@ class ModernCategoryListTab(QWidget):
         self.categories_tree.setColumnWidth(3, 100)   # Status
         
         # Tree Styling
-        self.categories_tree.setStyleSheet("""
+        # Tree Styling handled by _update_tree_style
+        """
+        self.categories_tree.setStyleSheet(\"\"\"
             QTreeWidget {
                 border: 1px solid #374151;
                 border-radius: 8px;
@@ -211,7 +225,8 @@ class ModernCategoryListTab(QWidget):
                 border-bottom: 2px solid #374151;
                 font-weight: bold;
             }
-        """)
+        \"\"\")
+        """
         
         layout.addWidget(self.categories_tree)
 
@@ -295,6 +310,64 @@ class ModernCategoryListTab(QWidget):
         text_layout = card.layout().itemAt(1).layout()
         value_label = text_layout.itemAt(1).widget()
         value_label.setText(value)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_styles()
+        
+    def _update_all_styles(self):
+        """Update all styles based on current theme"""
+        self._update_tree_style()
+        self._update_input_style()
+        
+    def _update_tree_style(self):
+        """Update tree widget style"""
+        is_dark = self.current_theme == 'dark'
+        border_color = "#374151" if is_dark else "#E5E7EB"
+        
+        self.categories_tree.setStyleSheet(f"""
+            QTreeWidget {{
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                background-color: {'#1F2937' if is_dark else '#FFFFFF'};
+                color: {'white' if is_dark else 'black'};
+            }}
+            QTreeWidget::item {{
+                padding: 8px;
+                border-bottom: 1px solid {border_color};
+                color: {'white' if is_dark else 'black'};
+            }}
+            QHeaderView::section {{
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid {border_color};
+                font-weight: bold;
+                background-color: {'#374151' if is_dark else '#F3F4F6'};
+                color: {'white' if is_dark else 'black'};
+            }}
+        """)
+        
+    def _update_input_style(self):
+        """Update input field style"""
+        is_dark = self.current_theme == 'dark'
+        border_color = "#374151" if is_dark else "#D1D5DB"
+        bg_color = "#1F2937" if is_dark else "#FFFFFF"
+        text_color = "white" if is_dark else "black"
+        
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: 8px 12px;
+                border: 1px solid {border_color};
+                border-radius: 6px;
+                min-width: 250px;
+                background-color: {bg_color};
+                color: {text_color};
+            }}
+            QLineEdit:focus {{
+                border-color: #3B82F6;
+            }}
+        """)
 
     def connect_signals(self):
         """Connect all signals to their slots"""

@@ -17,12 +17,15 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QColor, QCursor, QPixmap
-from typing import List
+from typing import List, Optional
 from decimal import Decimal
 from models.technician import Technician
 from utils.language_manager import language_manager
 from utils.currency_formatter import currency_formatter
 from views.components.new_dashboard_widgets import is_dark_theme
+from utils.security.password_utils import hash_password
+from views.technician.performance_dashboard_dialog import PerformanceDashboardDialog
+from views.technician.bonus_management_dialog import BonusManagementDialog
 
 
 class TechniciansTab(QWidget):
@@ -42,6 +45,15 @@ class TechniciansTab(QWidget):
         
         self._setup_ui()
         self._connect_signals()
+        
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.current_theme = self.container.theme_controller.current_theme
+
+        # Apply initial theme
+        self._update_all_styles()
+        
         # self.load_technicians() - Moved to lazy loading
         self._data_loaded = False
 
@@ -60,9 +72,9 @@ class TechniciansTab(QWidget):
         # Header
         header_layout = QHBoxLayout()
         
-        title = QLabel(self.lm.get("Users.technicians_title", "Technicians"))
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;")
-        header_layout.addWidget(title)
+        self.title_label = QLabel(self.lm.get("Users.technicians_title", "Technicians"))
+        self.title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;")
+        header_layout.addWidget(self.title_label)
         
         header_layout.addStretch()
         
@@ -312,7 +324,71 @@ class TechniciansTab(QWidget):
 
     def _on_theme_changed(self, theme_name):
         """Handle theme change"""
-        self.load_technicians()
+        self.current_theme = theme_name
+        self._update_all_styles()
+        self.load_technicians() # Reload data to refresh cards with new theme
+
+    def _update_all_styles(self):
+        """Update all styles"""
+        self._update_header_style()
+        self._update_input_style()
+        self._update_table_style()
+
+    def _update_header_style(self):
+        """Update header text color"""
+        is_dark = self.current_theme == 'dark'
+        text_color = "white" if is_dark else "#1F2937"
+        self.title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {text_color};")
+
+    def _update_input_style(self):
+        """Update input field style"""
+        is_dark = self.current_theme == 'dark'
+        border_color = "#374151" if is_dark else "#D1D5DB"
+        bg_color = "#1F2937" if is_dark else "#FFFFFF"
+        text_color = "white" if is_dark else "black"
+        
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: 8px 12px;
+                border: 1px solid {border_color};
+                border-radius: 6px;
+                background-color: {bg_color};
+                color: {text_color};
+            }}
+            QLineEdit:focus {{
+                border-color: #3B82F6;
+            }}
+        """)
+
+    def _update_table_style(self):
+        """Update table style"""
+        is_dark = self.current_theme == 'dark'
+        border_color = "#374151" if is_dark else "#E5E7EB"
+        
+        self.technicians_table.setStyleSheet(f"""
+            QTableWidget {{
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                gridline-color: {border_color};
+                background-color: {'#1F2937' if is_dark else '#FFFFFF'};
+                color: {'white' if is_dark else 'black'};
+            }}
+            QTableWidget::item {{
+                padding: 8px;
+                border-bottom: 1px solid {border_color};
+                color: {'white' if is_dark else 'black'};
+            }}
+            QHeaderView::section {{
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid {border_color};
+                font-weight: bold;
+                background-color: {'#374151' if is_dark else '#F3F4F6'};
+                color: {'white' if is_dark else 'black'};
+            }}
+        """)
+
+
     
     def _switch_view(self, view_mode):
         """Switch between different view modes"""
@@ -400,14 +476,6 @@ class TechniciansTab(QWidget):
     
     def _create_technician_card(self, tech):
         """Create a technician card widget"""
-        # Theme colors
-        dark_mode = is_dark_theme(self)
-        
-        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
-        border_color = "#374151" if dark_mode else "#E5E7EB"
-        text_main = "white" if dark_mode else "#1F2937"
-        text_sub = "#9CA3AF" if dark_mode else "#6B7280"
-        
         card = QFrame()
         card.setObjectName("techCard")
         card.setCursor(QCursor(Qt.PointingHandCursor))
@@ -417,18 +485,8 @@ class TechniciansTab(QWidget):
         status_color = self._get_status_color(tech.is_active)
         
         # Style card
-        card.setStyleSheet(f"""
-            QFrame#techCard {{
-                background-color: {bg_color};
-                border: 1px solid {border_color};
-                border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#techCard:hover {{
-                border-color: {status_color};
-                background-color: {bg_color};
-            }}
-        """)
+        card.status_color = status_color
+        self._update_card_style(card, tech.id in self.selected_technicians)
         
         # Store tech data
         card.tech_id = tech.id
@@ -459,8 +517,15 @@ class TechniciansTab(QWidget):
         # Header row - Name and status
         header = QHBoxLayout()
         
-        name_label = QLabel(tech.full_name)
-        name_label.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {text_main};")
+        # Display name check
+        display_name = tech.full_name
+        if tech.user:
+            display_name = tech.user.full_name
+            
+        name_label = QLabel(display_name)
+        name_label.setObjectName("nameLabel")
+        # Style set by _update_card_style
+        name_label.setStyleSheet(f"font-size: 16px; font-weight: bold;")
         header.addWidget(name_label)
         
         header.addStretch()
@@ -482,23 +547,27 @@ class TechniciansTab(QWidget):
         # Professional info
         if tech.specialization:
             spec_label = QLabel(f"🔧 {tech.specialization}")
-            spec_label.setStyleSheet(f"color: {text_sub}; font-size: 13px;")
+            spec_label.setObjectName("metaLabel")
+            spec_label.setStyleSheet(f"font-size: 13px;")
             layout.addWidget(spec_label)
         
         if tech.certification:
             cert_label = QLabel(f"📜 {tech.certification}")
-            cert_label.setStyleSheet(f"color: {text_sub}; font-size: 12px;")
+            cert_label.setObjectName("metaLabel")
+            cert_label.setStyleSheet(f"font-size: 12px;")
             layout.addWidget(cert_label)
         
         # Contact info
         if tech.email:
             email_label = QLabel(f"📧 {tech.email}")
-            email_label.setStyleSheet(f"color: {text_sub}; font-size: 11px;")
+            email_label.setObjectName("metaLabel")
+            email_label.setStyleSheet(f"font-size: 11px;")
             layout.addWidget(email_label)
         
         if tech.phone:
             phone_label = QLabel(f"📱 {tech.phone}")
-            phone_label.setStyleSheet(f"color: {text_sub}; font-size: 11px;")
+            phone_label.setObjectName("metaLabel")
+            phone_label.setStyleSheet(f"font-size: 11px;")
             layout.addWidget(phone_label)
         
         layout.addStretch()
@@ -540,7 +609,10 @@ class TechniciansTab(QWidget):
             self.technicians_table.setItem(row, 1, id_item)
             
             # Name
-            self.technicians_table.setItem(row, 2, QTableWidgetItem(tech.full_name))
+            display_name = tech.full_name
+            if tech.user:
+                display_name = tech.user.full_name
+            self.technicians_table.setItem(row, 2, QTableWidgetItem(display_name))
             
             # Certification
             self.technicians_table.setItem(row, 3, QTableWidgetItem(tech.certification or ""))
@@ -590,43 +662,50 @@ class TechniciansTab(QWidget):
         self.show_technician_details(tech)
             
     def _update_card_selection_style(self, card, is_selected):
-        """Update card style based on selection"""
+        """Wrapper for _update_card_style to maintain compatibility"""
+        self._update_card_style(card, is_selected)
+
+    def _update_card_style(self, card, is_selected):
+        """Update card style based on selection and theme"""
         # Get status color for hover effect
-        tech_id = getattr(card, 'tech_id', None)
-        status_color = "#10B981" # Default green
+        status_color = getattr(card, 'status_color', '#10B981')
         
         # Theme colors
-        dark_mode = is_dark_theme(self)
+        is_dark = self.current_theme == 'dark'
         
-        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
-        border_color = "#374151" if dark_mode else "#E5E7EB"
-        
-        # Selection colors
-        sel_bg = "#374151" if dark_mode else "#EFF6FF"
-        sel_border = "#3B82F6"
-        
-        if is_selected:
-            card.setStyleSheet(f"""
-                QFrame#techCard {{
-                    background-color: {sel_bg};
-                    border: 2px solid {sel_border};
-                    border-radius: 8px;
-                    padding: 12px;
-                }}
-            """)
-        else:
-            card.setStyleSheet(f"""
-                QFrame#techCard {{
-                    background-color: {bg_color};
-                    border: 1px solid {border_color};
-                    border-radius: 8px;
-                    padding: 12px;
-                }}
-                QFrame#techCard:hover {{
-                    border-color: {sel_border};
-                    background-color: {bg_color};
-                }}
-            """)
+        if is_dark:
+            bg_color = "#374151" if is_selected else "#1F2937"
+            border_color = "#3B82F6" if is_selected else "#374151"
+            hover_bg = "#374151"
+            hover_border = status_color
+            text_main = "white"
+            text_sub = "#9CA3AF"
+        else: # Light
+            bg_color = "#EFF6FF" if is_selected else "#FFFFFF"
+            border_color = "#3B82F6" if is_selected else "#E5E7EB"
+            hover_bg = "#F9FAFB"
+            hover_border = status_color
+            text_main = "#1F2937"
+            text_sub = "#6B7280"
+
+        card.setStyleSheet(f"""
+            QFrame#techCard {{
+                background-color: {bg_color};
+                border: {'2px' if is_selected else '1px'} solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#techCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg if not is_selected else bg_color};
+            }}
+            QLabel#nameLabel {{
+                color: {text_main};
+            }}
+            QLabel#metaLabel {{
+                color: {text_sub};
+            }}
+        """)
 
     def _on_background_clicked(self, event):
         """Handle click on background to deselect all"""
@@ -753,49 +832,68 @@ class TechniciansTab(QWidget):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QWidget, QGridLayout
         from views.components.money_input import MoneyInput
         
+        # Detect theme
+        dark_mode = is_dark_theme(self)
+        
+        # Define theme-aware colors
+        bg_color = "#1F2937" if dark_mode else "#FFFFFF"
+        label_color = "#E5E7EB" if dark_mode else "#374151"
+        input_bg = "#374151" if dark_mode else "#F9FAFB"
+        input_border = "#4B5563" if dark_mode else "#D1D5DB"
+        input_text = "#F9FAFB" if dark_mode else "#111827"
+        input_focus_bg = "#4B5563" if dark_mode else "#FFFFFF"
+        primary_color = "#3B82F6"
+        primary_hover = "#2563EB"
+        
+        # Suffix colors (Ks, %)
+        ks_bg = "#065F46" if dark_mode else "#DCFCE7"
+        ks_text = "#10B981" if dark_mode else "#059669"
+        pct_bg = "#1E3A8A" if dark_mode else "#DBEAFE"
+        pct_text = "#3B82F6" if dark_mode else "#1D4ED8"
+        
         dialog = QDialog(self)
         title_text = self.lm.get("Technicians.edit_technician", "Edit Technician") if technician else self.lm.get("Technicians.add_new_technician", "Add New Technician")
         dialog.setWindowTitle(title_text)
         dialog.setFixedSize(650, 540)
         
-        # Modern dark theme styling
-        dialog.setStyleSheet("""
-            QDialog {
-                background-color: #1F2937;
-            }
-            QLabel {
-                color: #E5E7EB;
-            }
-            QLineEdit {
-                background-color: #374151;
-                border: 2px solid #4B5563;
+        # Modern dynamic theme styling
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background-color: {bg_color};
+            }}
+            QLabel {{
+                color: {label_color};
+            }}
+            QLineEdit {{
+                background-color: {input_bg};
+                border: 2px solid {input_border};
                 border-radius: 6px;
                 padding: 8px 10px;
-                color: #F9FAFB;
+                color: {input_text};
                 font-size: 13px;
-            }
-            QLineEdit:focus {
-                border-color: #3B82F6;
-                background-color: #4B5563;
-            }
-            QLineEdit:hover {
+            }}
+            QLineEdit:focus {{
+                border-color: {primary_color};
+                background-color: {input_focus_bg};
+            }}
+            QLineEdit:hover {{
                 border-color: #6B7280;
-            }
-            QPushButton {
-                background-color: #3B82F6;
+            }}
+            QPushButton {{
+                background-color: {primary_color};
                 color: white;
                 border: none;
                 border-radius: 6px;
                 padding: 10px 20px;
                 font-weight: bold;
                 font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:hover {{
+                background-color: {primary_hover};
+            }}
+            QPushButton:pressed {{
                 background-color: #1D4ED8;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(dialog)
@@ -812,7 +910,7 @@ class TechniciansTab(QWidget):
         
         # Personal Information - 2 columns
         personal_header = QLabel("👤 " + self.lm.get("Common.personal_information", "Personal Information"))
-        personal_header.setStyleSheet("font-weight: bold; color: #3B82F6; font-size: 14px; padding-top: 5px;")
+        personal_header.setStyleSheet(f"font-weight: bold; color: {primary_color}; font-size: 14px; padding-top: 5px;")
         form_layout.addWidget(personal_header, row, 0, 1, 4)
         row += 1
         
@@ -821,7 +919,9 @@ class TechniciansTab(QWidget):
         full_name_label.setStyleSheet("font-weight: bold; font-size: 12px;")
         full_name_input = QLineEdit()
         if technician:
-            full_name_input.setText(technician.full_name or "")
+            # Prefer User name if linked
+            name_val = technician.user.full_name if (technician.user and hasattr(technician.user, 'full_name')) else (technician.full_name or "")
+            full_name_input.setText(name_val)
         full_name_input.setPlaceholderText(self.lm.get("Common.enter_full_name", "Enter full name"))
         form_layout.addWidget(full_name_label, row, 0)
         form_layout.addWidget(full_name_input, row, 1, 1, 3)
@@ -832,7 +932,9 @@ class TechniciansTab(QWidget):
         email_label.setStyleSheet("font-weight: bold; font-size: 12px;")
         email_input = QLineEdit()
         if technician:
-            email_input.setText(technician.email or "")
+            # Prefer User email if linked
+            email_val = technician.user.email if (technician.user and technician.user.email) else (technician.email or "")
+            email_input.setText(email_val)
         email_input.setPlaceholderText("example@gmail.com")
         email_regex = QRegularExpression(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
         email_validator = QRegularExpressionValidator(email_regex)
@@ -912,13 +1014,13 @@ class TechniciansTab(QWidget):
             salary_input.setValue(float(technician.salary or 0))
         salary_input.setPlaceholderText("0.00")
         
-        # Remove the regex validator since we're handling formatting manually
         salary_layout.addWidget(salary_input)
         
         salary_currency = QLabel("Ks")
-        salary_currency.setStyleSheet("""
-            background-color: #065F46;
-            color: #10B981;
+        salary_currency.setAlignment(Qt.AlignCenter)
+        salary_currency.setStyleSheet(f"""
+            background-color: {ks_bg};
+            color: {ks_text};
             padding: 8px 12px;
             border-radius: 6px;
             font-weight: bold;
@@ -948,9 +1050,10 @@ class TechniciansTab(QWidget):
         commission_layout.addWidget(commission_input)
         
         commission_percent = QLabel("%")
-        commission_percent.setStyleSheet("""
-            background-color: #1E3A8A;
-            color: #3B82F6;
+        commission_percent.setAlignment(Qt.AlignCenter)
+        commission_percent.setStyleSheet(f"""
+            background-color: {pct_bg};
+            color: {pct_text};
             padding: 8px 12px;
             border-radius: 6px;
             font-weight: bold;
@@ -960,6 +1063,22 @@ class TechniciansTab(QWidget):
         
         form_layout.addWidget(commission_label, row, 2)
         form_layout.addWidget(commission_container, row, 3)
+        row += 1
+        
+        # Account Access
+        access_header = QLabel("🔐 " + self.lm.get("Technicians.account_access", "Account Access"))
+        access_header.setStyleSheet("font-weight: bold; color: #F59E0B; font-size: 14px; padding-top: 5px;")
+        form_layout.addWidget(access_header, row, 0, 1, 4)
+        row += 1
+        
+        pass_label = QLabel("🔑 " + self.lm.get("Common.password", "Password"))
+        pass_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+        password_input = QLineEdit()
+        password_input.setEchoMode(QLineEdit.Password)
+        password_input.setPlaceholderText(self.lm.get("Common.enter_password", "Enter password"))
+        
+        form_layout.addWidget(pass_label, row, 0)
+        form_layout.addWidget(password_input, row, 1, 1, 3)
         
         layout.addLayout(form_layout)
         layout.addStretch()
@@ -999,6 +1118,7 @@ class TechniciansTab(QWidget):
             specialization_input,
             salary_input,
             commission_input,
+            password_input,
             technician # Pass existing technician if editing
         ))
         button_layout.addWidget(save_btn)
@@ -1009,7 +1129,7 @@ class TechniciansTab(QWidget):
     
     def _add_technician_logic(self, dialog, full_name_input, email_input, phone_input, 
                        address_input, certification_input, specialization_input,
-                       salary_input, commission_input, existing_technician=None):
+                       salary_input, commission_input, password_input, existing_technician=None):
         """
         Logic to add new technician.
         Validates inputs and creates a new technician record.
@@ -1067,6 +1187,11 @@ class TechniciansTab(QWidget):
             "is_active": True
         }
         
+        # Only update password if input is not empty
+        password_val = password_input.text().strip()
+        if password_val:
+            technician_data["password"] = hash_password(password_val)
+        
         try:
             if existing_technician:
                 # Update existing technician
@@ -1088,14 +1213,55 @@ class TechniciansTab(QWidget):
         except Exception as e:
             QMessageBox.warning(self, self.lm.get("Common.error", "Error"), f"{self.lm.get('Technicians.failed_to_add_technician', 'Failed to add technician')}: {str(e)}")
 
+    def get_selected_technician_id(self) -> Optional[int]:
+        """Get the ID of the currently selected technician."""
+        if self.current_view == 'cards':
+            if self.selected_technicians:
+                return self.selected_technicians[0]
+        elif self.current_view == 'list':
+            current_row = self.technicians_table.currentRow()
+            if current_row >= 0:
+                item = self.technicians_table.item(current_row, 1)
+                if item:
+                    return item.data(Qt.UserRole)
+        return None
+
     def _show_dashboard(self):
         """Show performance dashboard dialog."""
-        dialog = PerformanceDashboardDialog(self.container, self.user, parent=self)
+        tech_id = self.get_selected_technician_id()
+        
+        if not tech_id:
+            QMessageBox.warning(
+                self, 
+                self.lm.get("Common.warning", "Warning"), 
+                self.lm.get("Technicians.select_technician_first", "Please select a technician first.")
+            )
+            return
+
+        technician = self.technician_controller.get_technician(tech_id)
+        if not technician:
+            return
+            
+        dialog = PerformanceDashboardDialog(self.container, technician, parent=self)
         dialog.exec()
 
     def _show_bonus_dialog(self):
         """Show bonus management dialog."""
-        dialog = BonusManagementDialog(self.container, self.user, parent=self)
+        tech_id = self.get_selected_technician_id()
+        
+        if not tech_id:
+            QMessageBox.warning(
+                self, 
+                self.lm.get("Common.warning", "Warning"), 
+                self.lm.get("Technicians.select_technician_first", "Please select a technician first.")
+            )
+            return
+
+        technician = self.technician_controller.get_technician(tech_id)
+        if not technician:
+            return
+
+        dialog = BonusManagementDialog(self.container, technician, parent=self)
         dialog.exec()
 
     def _edit_technician(self, technician):

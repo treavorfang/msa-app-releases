@@ -54,6 +54,12 @@ class PaymentListTab(QWidget):
         # Header with title and view switcher
         header_layout = self._create_header()
         layout.addLayout(header_layout)
+
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
         
         # Summary Cards
         summary_layout = self._create_summary_cards()
@@ -78,6 +84,9 @@ class PaymentListTab(QWidget):
         self.view_stack.addWidget(self.list_view)
         
         layout.addWidget(self.view_stack, 1)
+
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
     
     def _create_header(self):
         """Create header with title and view switcher"""
@@ -477,20 +486,6 @@ class PaymentListTab(QWidget):
         card.mousePressEvent = mousePressEvent
         card.mouseDoubleClickEvent = mouseDoubleClickEvent
         
-        # Style card
-        card.setStyleSheet(f"""
-            QFrame#paymentCard {{
-                background-color: #1F2937;
-                border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#paymentCard:hover {{
-                border-color: {method_color};
-                background-color: #374151;
-            }}
-        """)
-        
         layout = QVBoxLayout(card)
         layout.setSpacing(8)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -500,6 +495,7 @@ class PaymentListTab(QWidget):
         
         payment_date = payment.payment_date.date() if hasattr(payment.payment_date, 'date') else payment.payment_date
         date_label = QLabel(payment_date.strftime("%Y-%m-%d"))
+        date_label.setObjectName("dateLabel")
         date_label.setStyleSheet("font-size: 14px; font-weight: bold;")
         header.addWidget(date_label)
         
@@ -522,7 +518,8 @@ class PaymentListTab(QWidget):
         # Invoice number
         invoice_number = payment.invoice_number if payment.invoice_number else "N/A"
         invoice_label = QLabel(f"📄 {self.lm.get('Payments.invoice', 'Invoice')}: {invoice_number}")
-        invoice_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        invoice_label.setObjectName("metaLabel")
+        invoice_label.setStyleSheet("font-size: 12px;")
         layout.addWidget(invoice_label)
         
         # Supplier
@@ -530,13 +527,15 @@ class PaymentListTab(QWidget):
         if payment.supplier_name:
             supplier_name = payment.supplier_name
         supplier_label = QLabel(f"🏢 {supplier_name}")
-        supplier_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        supplier_label.setObjectName("metaLabel")
+        supplier_label.setStyleSheet("font-size: 12px;")
         layout.addWidget(supplier_label)
         
         # Reference
         if payment.reference_number:
             ref_label = QLabel(f"🔖 {self.lm.get('Payments.ref', 'Ref')}: {payment.reference_number}")
-            ref_label.setStyleSheet("color: #9CA3AF; font-size: 11px;")
+            ref_label.setObjectName("metaLabel")
+            ref_label.setStyleSheet("font-size: 11px;")
             layout.addWidget(ref_label)
         
         layout.addStretch()
@@ -547,7 +546,7 @@ class PaymentListTab(QWidget):
         layout.addWidget(amount_label)
         
         # Initial style
-        self._update_card_selection_style(card, payment.id in self.selected_payments)
+        self._update_card_style(card, payment.id in self.selected_payments)
         
         return card
     
@@ -592,10 +591,10 @@ class PaymentListTab(QWidget):
         """Handle card click (toggle selection)"""
         if payment.id in self.selected_payments:
             self.selected_payments.remove(payment.id)
-            self._update_card_selection_style(card, False)
+            self._update_card_style(card, False)
         else:
             self.selected_payments.append(payment.id)
-            self._update_card_selection_style(card, True)
+            self._update_card_style(card, True)
             
     def _on_card_double_clicked(self, payment):
         """Handle card double click (open details)"""
@@ -603,32 +602,61 @@ class PaymentListTab(QWidget):
         # For now, let's just print or do nothing as there's no edit dialog mentioned in imports
         pass
             
-    def _update_card_selection_style(self, card, is_selected):
-        """Update card style based on selection"""
+    def _update_card_style(self, card, is_selected):
+        """Update card style based on selection and theme"""
         method_color = getattr(card, 'method_color', '#3B82F6')
+        is_dark = self.current_theme == 'dark'
         
-        if is_selected:
-            card.setStyleSheet("""
-                QFrame#paymentCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
-                    border-radius: 8px;
-                    padding: 12px;
-                }
-            """)
-        else:
-            card.setStyleSheet(f"""
-                QFrame#paymentCard {{
-                    background-color: #1F2937;
-                    border: 1px solid #374151;
-                    border-radius: 8px;
-                    padding: 12px;
-                }}
-                QFrame#paymentCard:hover {{
-                    border-color: {method_color};
-                    background-color: #374151;
-                }}
-            """)
+        if is_dark:
+            bg_color = "#374151" if is_selected else "#1F2937"
+            border_color = "#3B82F6" if is_selected else "#374151"
+            hover_bg = "#374151"
+            hover_border = method_color
+            text_color = "white"
+            meta_color = "#9CA3AF" # Gray 400
+        else: # Light
+            bg_color = "#EFF6FF" if is_selected else "#FFFFFF" # Blue 50 or White
+            border_color = "#3B82F6" if is_selected else "#E5E7EB" # Blue 500 or Gray 200
+            hover_bg = "#F9FAFB" # Gray 50
+            hover_border = method_color
+            text_color = "#111827" # Gray 900
+            meta_color = "#4B5563" # Gray 600
+
+        card.setStyleSheet(f"""
+            QFrame#paymentCard {{
+                background-color: {bg_color};
+                border: {'2px' if is_selected else '1px'} solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#paymentCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg if not is_selected else bg_color};
+            }}
+            QLabel#dateLabel {{
+                color: {text_color};
+            }}
+            QLabel#metaLabel {{
+                color: {meta_color};
+            }}
+        """)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_cards_style()
+        
+    def _update_all_cards_style(self):
+        """Update style for all cards"""
+        # Ensure cards_layout exists before iterating
+        if not hasattr(self, 'cards_layout'):
+            return 
+            
+        for i in range(self.cards_layout.count()):
+            item = self.cards_layout.itemAt(i)
+            if item and item.widget():
+                card = item.widget()
+                self._update_card_style(card, card.payment_id in self.selected_payments)
 
     def _on_background_clicked(self, event):
         """Handle click on background to deselect all"""
@@ -643,7 +671,7 @@ class PaymentListTab(QWidget):
         for i in range(self.cards_layout.count()):
             item = self.cards_layout.itemAt(i)
             if item and item.widget():
-                self._update_card_selection_style(item.widget(), False)
+                self._update_card_style(item.widget(), False)
     
     def _handle_payment_event(self, event):
         """Handle payment-related EventBus events"""

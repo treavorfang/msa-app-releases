@@ -289,7 +289,7 @@ class RegisterView(QWidget):
             self.strength_label.setText("")
             return
         
-        complexity = InputValidator.validate_password_complexity(password)
+        complexity = InputValidator.validate_password_complexity(password, is_local=True)
         total_checks = len(complexity)
         passed_checks = sum(1 for is_valid, _ in complexity.values() if is_valid)
         strength_percent = (passed_checks / total_checks) * 100
@@ -297,12 +297,9 @@ class RegisterView(QWidget):
         if strength_percent < 40:
             text = self.lm.get("Auth.strength_weak", "Strength: Weak")
             color = "#EF4444"  # Red
-        elif strength_percent < 70:
+        elif strength_percent < 100:
             text = self.lm.get("Auth.strength_fair", "Strength: Fair")
             color = "#F59E0B"  # Orange
-        elif strength_percent < 90:
-            text = self.lm.get("Auth.strength_good", "Strength: Good")
-            color = "#3B82F6"  # Blue
         else:
             text = self.lm.get("Auth.strength_strong", "Strength: Strong")
             color = "#10B981"  # Green
@@ -350,7 +347,7 @@ class RegisterView(QWidget):
             MessageHandler.show_error(self, self.lm.get("Auth.invalid_email_title", "Invalid Email"), email_msg)
             return
         
-        is_valid, message = InputValidator.validate_password(password)
+        is_valid, message = InputValidator.validate_password(password, is_local=True)
         
         if is_valid and "Warning:" in message:
             result = MessageHandler.show_warning_confirm(

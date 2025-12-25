@@ -7,7 +7,7 @@ import io
 import base64
 import qrcode
 from datetime import datetime
-from PySide6.QtPrintSupport import QPrinter, QPrintDialog
+from PySide6.QtPrintSupport import QPrinter, QPrintDialog, QPrinterInfo
 
 # === MACOS WEASYPRINT FIX ===
 # Ensure WeasyPrint can find the libraries installed by Homebrew
@@ -399,7 +399,7 @@ class TicketReceiptGenerator:
             import traceback
             traceback.print_exc()
 
-    def print_ticket(self, ticket_data):
+    def print_ticket(self, ticket_data, printer_name=None, silent=False):
         """Print ticket using QPrinter by printing the generated PDF"""
         try:
             # 1. Generate temp PDF with WeasyPrint
@@ -423,107 +423,121 @@ class TicketReceiptGenerator:
             # Use safe filename for the suggested save name logic
             safe_basename = f"Ticket-{ticket_number.replace('/', '-').replace('\\', '-')}.pdf"
             printer.setDocName(safe_basename)
-            printer.setDocName(safe_basename)
-            # printer.setOutputFileName(safe_basename)
             
-            # 4. Handle Dialog
-            dialog = QPrintDialog(printer, self.parent)
-            if dialog.exec():
-                printer_name = printer.printerName()
-                output_file = printer.outputFileName()
-                print(f"DEBUG: Selected Printer: '{printer_name}'")
-                print(f"DEBUG: Output File: '{output_file}'")
-                
-                # CASE 1: Save as PDF (Native Dialog yielded a path)
-                if output_file:
-                    print(f"DEBUG: Save to PDF detected. Copying to {output_file}")
-                    try:
-                        shutil.copy(filename, output_file)
-                        print("DEBUG: File saved successfully.")
-                    except Exception as e:
-                        print(f"Error copying PDF: {e}")
-                        # Fallback to preview if copy fails
-                        if platform.system() == 'Darwin':
-                             subprocess.call(('open', filename))
-                        elif platform.system() == 'Windows':
-                             os.startfile(filename)
-                        else:
-                             subprocess.call(('xdg-open', filename))
+            # 4. Handle Printer Selection (Silence or Dialog)
+            if silent:
+                if printer_name:
+                    printer.setPrinterName(printer_name)
+                    print(f"DEBUG: Silent print to specific printer: '{printer_name}'")
+                else:
+                    default_printer = QPrinterInfo.defaultPrinterName()
+                    printer.setPrinterName(default_printer)
+                    printer_name = default_printer
+                    print(f"DEBUG: Silent print to default printer: '{default_printer}'")
+            elif printer_name:
+                printer.setPrinterName(printer_name)
+                print(f"DEBUG: UI-less print to specific printer: '{printer_name}'")
+            else:
+                dialog = QPrintDialog(printer, self.parent)
+                if not dialog.exec():
+                    print("DEBUG: Print dialog cancelled.")
                     return
+                printer_name = printer.printerName()
+                print(f"DEBUG: Dialog selected Printer: '{printer_name}'")
 
-                # CASE 2: PDF intent but no path (e.g. Cancelled save or proprietary dialog behavior)
-                if not printer_name or "pdf" in printer_name.lower():
-                     print("DEBUG: PDF/Empty printer selected but no output path. Opening in Preview.")
-                     if platform.system() == 'Darwin':
-                         subprocess.call(('open', filename))
-                     elif platform.system() == 'Windows':
-                         os.startfile(filename)
-                     else:
-                         subprocess.call(('xdg-open', filename))
-                     return
-
-                # CASE 3: Physical Printer
-                if platform.system() == 'Darwin' or platform.system() == 'Linux':
-                     cmd = ['lp', '-d', printer_name, filename]
-                     print(f"DEBUG: Running command: {cmd}")
-                     res = subprocess.run(cmd, capture_output=True, text=True)
-                     if res.returncode != 0:
-                         print(f"Error printing: {res.stderr}")
-                     else:
-                         print(f"Print job submitted: {res.stdout}")
-                         
-                elif platform.system() == 'Windows':
-                     # Try to print using SumatraPDF (Silent & Accurate)
-                     try:
-                        from config.config import get_sumatra_path, log_print_debug
-                        
-                        log_print_debug(f"Attempting to print ticket to printer '{printer_name}'")
-                        
-                        sumatra_path = get_sumatra_path()
-                        if not sumatra_path:
-                             raise FileNotFoundError("SumatraPDF path not found via config")
-                        
-                        log_print_debug(f"Found SumatraPDF at: {sumatra_path}")
-                        
-                        printer_name_arg = f'{printer_name}'
-                        
-                        # SumatraPDF command: SumatraPDF.exe -print-to "Printer Name" "file.pdf"
-                        cmd = [
-                            sumatra_path,
-                            "-print-to", printer_name_arg,
-                            "-silent",
-                            filename
-                        ]
-                        
-                        log_print_debug(f"Executing command: {cmd}")
-                        print(f"DEBUG: Attempting SumatraPDF: {cmd}")
-                        
-                        # We use subprocess.run. If SumatraPDF is missing, this will raise FileNotFoundError
-                        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                        log_print_debug(f"Command successful. Stdout: {result.stdout}")
-                        print("DEBUG: SumatraPDF print command successful")
-                        
-                     except Exception as sumatra_e:
-                        from config.config import log_print_debug
-                        log_print_debug(f"SumatraPDF failed: {sumatra_e}")
-                        print(f"SumatraPDF failed or not found ({sumatra_e}). Falling back to default handler...")
-                        
-                        # Fallback: Try PowerShell PrintTo (Standard method)
-                        try:
-                            printer_name_arg = f'"{printer_name}"'
-                            cmd = [
-                                "powershell", 
-                                "-Command", 
-                                f"Start-Process -FilePath '{filename}' -Verb PrintTo -ArgumentList {printer_name_arg} -PassThru | Wait-Process"
-                            ]
-                            log_print_debug(f"Fallback to PowerShell: {cmd}")
-                            print(f"DEBUG: Attempting Windows PrintTo: {cmd}")
-                            subprocess.run(cmd, check=True)
-                        except Exception as win_e:
-                            log_print_debug(f"PowerShell failed: {win_e}")
-                            print(f"Windows PrintTo failed ({win_e}), falling back to simple print...")
-                            os.startfile(filename, "print")
+            output_file = printer.outputFileName()
+            print(f"DEBUG: Output File: '{output_file}'")
                 
+            # CASE 1: Save as PDF (Native Dialog yielded a path)
+            if output_file:
+                print(f"DEBUG: Save to PDF detected. Copying to {output_file}")
+                try:
+                    shutil.copy(filename, output_file)
+                    print("DEBUG: File saved successfully.")
+                except Exception as e:
+                    print(f"Error copying PDF: {e}")
+                    # Fallback to preview if copy fails
+                    if platform.system() == 'Darwin':
+                         subprocess.call(('open', filename))
+                    elif platform.system() == 'Windows':
+                         os.startfile(filename)
+                    else:
+                         subprocess.call(('xdg-open', filename))
+                return
+
+            # CASE 2: PDF intent but no path (e.g. Cancelled save or proprietary dialog behavior)
+            if not printer_name or "pdf" in printer_name.lower():
+                 print("DEBUG: PDF/Empty printer selected but no output path. Opening in Preview.")
+                 if platform.system() == 'Darwin':
+                     subprocess.call(('open', filename))
+                 elif platform.system() == 'Windows':
+                     os.startfile(filename)
+                 else:
+                     subprocess.call(('xdg-open', filename))
+                 return
+
+            # CASE 3: Physical Printer
+            if platform.system() == 'Darwin' or platform.system() == 'Linux':
+                 cmd = ['lp', '-d', printer_name, filename]
+                 print(f"DEBUG: Running command: {cmd}")
+                 res = subprocess.run(cmd, capture_output=True, text=True)
+                 if res.returncode != 0:
+                     print(f"Error printing: {res.stderr}")
+                 else:
+                     print(f"Print job submitted: {res.stdout}")
+                     
+            elif platform.system() == 'Windows':
+                 # Try to print using SumatraPDF (Silent & Accurate)
+                 try:
+                    from config.config import get_sumatra_path, log_print_debug
+                    
+                    log_print_debug(f"Attempting to print ticket to printer '{printer_name}'")
+                    
+                    sumatra_path = get_sumatra_path()
+                    if not sumatra_path:
+                         raise FileNotFoundError("SumatraPDF path not found via config")
+                    
+                    log_print_debug(f"Found SumatraPDF at: {sumatra_path}")
+                    
+                    printer_name_arg = f'{printer_name}'
+                    
+                    # SumatraPDF command: SumatraPDF.exe -print-to "Printer Name" "file.pdf"
+                    cmd = [
+                        sumatra_path,
+                        "-print-to", printer_name_arg,
+                        "-silent",
+                        filename
+                    ]
+                    
+                    log_print_debug(f"Executing command: {cmd}")
+                    print(f"DEBUG: Attempting SumatraPDF: {cmd}")
+                    
+                    # We use subprocess.run. If SumatraPDF is missing, this will raise FileNotFoundError
+                    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                    log_print_debug(f"Command successful. Stdout: {result.stdout}")
+                    print("DEBUG: SumatraPDF print command successful")
+                    
+                 except Exception as sumatra_e:
+                    from config.config import log_print_debug
+                    log_print_debug(f"SumatraPDF failed: {sumatra_e}")
+                    print(f"SumatraPDF failed or not found ({sumatra_e}). Falling back to default handler...")
+                    
+                    # Fallback: Try PowerShell PrintTo (Standard method)
+                    try:
+                        printer_name_arg = f'"{printer_name}"'
+                        cmd = [
+                            "powershell", 
+                            "-Command", 
+                            f"Start-Process -FilePath '{filename}' -Verb PrintTo -ArgumentList {printer_name_arg} -PassThru | Wait-Process"
+                        ]
+                        log_print_debug(f"Fallback to PowerShell: {cmd}")
+                        print(f"DEBUG: Attempting Windows PrintTo: {cmd}")
+                        subprocess.run(cmd, check=True)
+                    except Exception as win_e:
+                        log_print_debug(f"PowerShell failed: {win_e}")
+                        print(f"Windows PrintTo failed ({win_e}), falling back to simple print...")
+                        os.startfile(filename, "print")
+            
         except Exception as e:
             print(f"Printing error: {e}")
             import traceback

@@ -72,8 +72,8 @@ def load_models():
     from models.customer import Customer
     from models.device import Device
     
-    # Ticket & Repair Management
     from models.ticket import Ticket
+    from models.ticket_photo import TicketPhoto
     from models.status_history import StatusHistory
     from models.warranty import Warranty
     from models.work_log import WorkLog

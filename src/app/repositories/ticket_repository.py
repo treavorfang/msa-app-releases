@@ -105,7 +105,11 @@ class TicketRepository:
         
         if filters:
             if 'status' in filters and filters['status']:
-                query = query.where(Ticket.status == filters['status'])
+                status_filter = filters['status']
+                if isinstance(status_filter, (list, tuple)):
+                    query = query.where(Ticket.status << status_filter)
+                else:
+                    query = query.where(Ticket.status == status_filter)
             if 'priority' in filters and filters['priority']:
                 query = query.where(Ticket.priority == filters['priority'])
             if 'technician_id' in filters:
@@ -115,19 +119,38 @@ class TicketRepository:
                 query = query.where(Device.customer == filters['customer_id'])
             if 'branch_id' in filters and filters['branch_id']:
                 query = query.where(Ticket.branch == filters['branch_id'])
+            if 'exclude_returned' in filters and filters['exclude_returned']:
+                query = query.where(Device.status != 'returned')
+            if 'only_returned' in filters and filters['only_returned']:
+                query = query.where(Device.status == 'returned')
+                
+        # Apply sorting (default: created_at desc)
+        query = query.order_by(Ticket.created_at.desc())
+        
+        # Apply pagination
+        if filters:
+            if 'limit' in filters:
+                query = query.limit(filters['limit'])
+            if 'offset' in filters:
+                query = query.offset(filters['offset'])
                 
         return list(query)
     
     def search(self, search_term: str, include_deleted: bool = False) -> List[Ticket]:
-        """Search tickets by number or error description."""
-        query = Ticket.select().where(
-            (Ticket.ticket_number.contains(search_term)) |
-            (Ticket.error.contains(search_term))
-        )
+        """Search tickets by number, error description, IMEI, or Serial."""
+        # Use LEFT OUTER JOIN for safety (parity with original select)
+        query = (Ticket
+                .select(Ticket)
+                .join(Device, JOIN.LEFT_OUTER, on=(Ticket.device == Device.id))
+                .where(
+                    (Ticket.ticket_number.contains(search_term)) |
+                    (Ticket.error.contains(search_term)) |
+                    (Device.imei == search_term) |
+                    (Device.serial_number == search_term)
+                ))
         if not include_deleted:
             query = query.where(Ticket.is_deleted == False)
         return list(query)
-    
     def get_dashboard_stats(self, date=None, branch_id: Optional[int] = None) -> dict:
         """Get statistical overview for the dashboard."""
         if not date:
@@ -173,12 +196,45 @@ class TicketRepository:
         if branch_id:
             revenue_query = revenue_query.where(Ticket.branch == branch_id)
         revenue = revenue_query.scalar() or 0.0
+
+        # Urgent tickets
+        urgent_query = Ticket.select().where(
+            (Ticket.priority << ['high', 'critical', 'urgent']) &
+            (Ticket.status != 'completed') &
+            (Ticket.is_deleted == False)
+        )
+        if branch_id:
+            urgent_query = urgent_query.where(Ticket.branch == branch_id)
+        urgent_count = urgent_query.count()
         
+        # Awaiting parts
+        waiting_query = Ticket.select().where(
+            (Ticket.status == 'awaiting_parts') &
+            (Ticket.is_deleted == False)
+        )
+        if branch_id:
+            waiting_query = waiting_query.where(Ticket.branch == branch_id)
+        pending_parts = waiting_query.count()
+
+        # Returned Today (Devices)
+        returned_today_query = Device.select().where(
+            (Device.status == 'returned') &
+            (Device.updated_at >= datetime.combine(date, datetime.min.time())) &
+            (Device.is_deleted == False)
+        )
+        if branch_id:
+            returned_today_query = returned_today_query.where(Device.branch == branch_id)
+        returned_today = returned_today_query.count()
+
         return {
             "new_jobs": new_jobs,
             "in_progress": in_progress,
             "completed": completed,
-            "revenue": float(revenue)
+            "revenue": float(revenue),
+            "urgent_tickets": urgent_count,
+            "pending_parts": pending_parts,
+            "ready_pickup": completed,
+            "returned_today": returned_today
         }
     
     def get_recent(self, limit: int = 10, branch_id: Optional[int] = None) -> List[Ticket]:

@@ -9,14 +9,17 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
     QGroupBox, QFormLayout, QTabWidget, QWidget, QMessageBox,
-    QFileDialog
+    QFileDialog, QStackedWidget
 )
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt, QDate, QTimer
 from PySide6.QtGui import QColor
 from decimal import Decimal
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from utils.performance_charts import PerformanceChartWidget
+from views.components.new_dashboard_widgets import (
+    BarChartWidget, MultiSeriesWaveChart, HorizontalBarChartWidget
+)
+from views.components.donut_chart import DonutChartWidget
 from utils.performance_export import PerformanceExporter
 from utils.language_manager import language_manager
 from utils.currency_formatter import currency_formatter
@@ -471,44 +474,104 @@ class PerformanceDashboardDialog(QDialog):
         chart_selector_layout.addWidget(QLabel(f"{self.lm.get('Users.select_chart', 'Select Chart')}:"))
         
         self.chart_type_selector = QComboBox()
-        self.chart_type_selector.addItems([
-            self.lm.get("Users.tickets_trend", "Tickets Trend"),
-            self.lm.get("Users.revenue_commission", "Revenue & Commission"),
-            self.lm.get("Users.efficiency_metrics", "Efficiency Metrics"),
-            self.lm.get("Users.compensation_breakdown", "Compensation Breakdown"),
-            self.lm.get("Users.team_comparison", "Team Comparison")
-        ])
-        self.chart_type_selector.currentTextChanged.connect(self._update_chart)
+        
+        # Add items with internal keys
+        self.chart_type_selector.addItem(self.lm.get("Users.tickets_trend", "Tickets Trend"), "tickets_trend")
+        self.chart_type_selector.addItem(self.lm.get("Users.revenue_commission", "Revenue & Commission"), "revenue_commission")
+        self.chart_type_selector.addItem(self.lm.get("Users.efficiency_metrics", "Efficiency Metrics"), "efficiency_metrics")
+        self.chart_type_selector.addItem(self.lm.get("Users.compensation_breakdown", "Compensation Breakdown"), "compensation")
+        self.chart_type_selector.addItem(self.lm.get("Users.team_comparison", "Team Comparison"), "team_comparison")
+        
+        # Select first by default
+        self.chart_type_selector.setCurrentIndex(0)
+        self.chart_type_selector.currentIndexChanged.connect(self._update_chart)
+        
         chart_selector_layout.addWidget(self.chart_type_selector)
         chart_selector_layout.addStretch()
         
         layout.addLayout(chart_selector_layout)
         
-        # Chart widget
-        self.chart_widget = PerformanceChartWidget()
-        layout.addWidget(self.chart_widget)
+        # Chart widgets in a stack
+        self.chart_stack = QStackedWidget()
+        
+        # 1. Bar Chart (Tickets)
+        self.bar_chart = BarChartWidget()
+        self.chart_stack.addWidget(self.bar_chart)
+        
+        # 2. Wave Chart (Revenue / Efficiency)
+        self.wave_chart = MultiSeriesWaveChart()
+        # Set a better formatter for currency in wave chart
+        self.wave_chart.set_formatter(lambda x: currency_formatter.format(x))
+        self.chart_stack.addWidget(self.wave_chart)
+        
+        # 3. Donut Chart (Compensation)
+        self.donut_chart = DonutChartWidget()
+        self.chart_stack.addWidget(self.donut_chart)
+        
+        # 4. Horizontal Bar Chart (Team)
+        self.horizontal_bar_chart = HorizontalBarChartWidget()
+        self.chart_stack.addWidget(self.horizontal_bar_chart)
+        
+        layout.addWidget(self.chart_stack)
+        
+        # Force initial update
+        QTimer.singleShot(100, self._update_chart)
         
         return widget
     
     def _update_chart(self):
         """Update chart based on selection"""
-        chart_type = self.chart_type_selector.currentText()
+        chart_key = self.chart_type_selector.currentData()
         history = self.performance_controller.get_performance_history(self.technician.id, 12)
         selected_month = self.month_selector.currentData()
         
         try:
-            if chart_type == "Tickets Trend":
-                self.chart_widget.plot_tickets_trend(history)
-            elif chart_type == "Revenue & Commission":
-                self.chart_widget.plot_revenue_trend(history)
-            elif chart_type == "Efficiency Metrics":
-                self.chart_widget.plot_efficiency_trend(history)
-            elif chart_type == "Compensation Breakdown":
+            if chart_key == "tickets_trend":
+                self.chart_stack.setCurrentWidget(self.bar_chart)
+                months = [p.month.strftime('%b') for p in reversed(history)]
+                tickets = [p.tickets_completed for p in reversed(history)]
+                self.bar_chart.set_data(tickets, months, color="#3B82F6")
+                
+            elif chart_key == "revenue_commission":
+                self.chart_stack.setCurrentWidget(self.wave_chart)
+                months = [p.month.strftime('%b') for p in reversed(history)]
+                rev_series = {'data': [float(p.revenue_generated) for p in reversed(history)], 'color': '#10B981', 'label': 'Revenue'}
+                comm_series = {'data': [float(p.commission_earned) for p in reversed(history)], 'color': '#8B5CF6', 'label': 'Commission'}
+                self.wave_chart.set_series([rev_series, comm_series], months)
+                
+            elif chart_key == "efficiency_metrics":
+                self.chart_stack.setCurrentWidget(self.wave_chart)
+                months = [p.month.strftime('%b') for p in reversed(history)]
+                eff_series = {'data': [float(p.efficiency_score) for p in reversed(history)], 'color': '#F59E0B', 'label': 'Efficiency'}
+                # Efficiency is small (0-5), so we don't use multi-axis with revenue here usually, 
+                # but we can show it as its own series.
+                self.wave_chart.set_series([eff_series], months)
+                # Note: We're not doing dual-axis for now to keep it clean, 
+                # but MultiSeriesWaveChart could be extended if needed.
+                
+            elif chart_key == "compensation":
+                self.chart_stack.setCurrentWidget(self.donut_chart)
                 perf = self.performance_controller.get_performance(self.technician.id, selected_month)
-                self.chart_widget.plot_compensation_breakdown(perf, self.technician.salary)
-            elif chart_type == "Team Comparison":
+                base = float(self.technician.salary)
+                comm = float(perf.commission_earned)
+                bonuses = float(perf.bonuses_earned)
+                
+                chart_data = []
+                if base > 0: chart_data.append({'name': 'Base Salary', 'amount': base, 'color': '#3B82F6'})
+                if comm > 0: chart_data.append({'name': 'Commission', 'amount': comm, 'color': '#8B5CF6'})
+                if bonuses > 0: chart_data.append({'name': 'Bonuses', 'amount': bonuses, 'color': '#F59E0B'})
+                
+                total = base + comm + bonuses
+                self.donut_chart.set_data(chart_data, center_text=f"{int(total):,}\nTotal")
+                
+            elif chart_key == "team_comparison":
+                self.chart_stack.setCurrentWidget(self.horizontal_bar_chart)
                 comparison = self.performance_controller.get_team_comparison(selected_month)
-                self.chart_widget.plot_team_comparison(comparison)
+                top_10 = comparison[:10]
+                names = [d['technician_name'] for d in top_10]
+                tickets = [d['tickets_completed'] for d in top_10]
+                self.horizontal_bar_chart.set_data(tickets, names, color="#10B981")
+                
         except Exception as e:
             QMessageBox.warning(self, self.lm.get("Common.error", "Error"), f"{self.lm.get('Users.failed_generate_chart', 'Failed to generate chart')}: {str(e)}")
     

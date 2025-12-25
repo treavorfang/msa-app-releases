@@ -11,7 +11,7 @@ QWidget {
     /* Light gray background */
     color: #333333;
     /* Dark gray text */
-    font-family: "Inter", "Segoe UI", ".AppleSystemUIFont", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Inter", ".AppleSystemUIFont", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 10pt;
 }
 
@@ -207,6 +207,8 @@ QTabWidget::pane {
     border-bottom-right-radius: 4px;
 }
 
+
+
 QTabBar::tab {
     background: #e0e0e0;
     color: #333333;
@@ -315,7 +317,7 @@ QCheckBox::indicator:checked {
 QDialog.themed-dialog {
     background-color: #ffffff;
     color: #333333;
-    font-family: "Inter", "Segoe UI", ".AppleSystemUIFont", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Inter", ".AppleSystemUIFont", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     padding: 20px;
 }
 

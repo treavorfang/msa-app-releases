@@ -52,6 +52,7 @@ migration_imports = [
     'migrations.003_set_default_branch',
     'migrations.004_seed_admin_user',
     'migrations.005_add_customization_to_settings',
+    'migrations.006_add_financial_tables',
     'migrations.007_add_technician_bonus_performance'
 ]
 

@@ -16,11 +16,13 @@ from models.customer import Customer
 class CustomerRepository:
     """Repository for Customer data access operations."""
     
-    def get_all(self, include_deleted: bool = False) -> List[Customer]:
+    def get_all(self, include_deleted: bool = False, limit: int = 20, offset: int = 0) -> List[Customer]:
         """Retrieve all customers ordered by name.
         
         Args:
             include_deleted (bool): Whether to include deleted customers
+            limit (int): Max results
+            offset (int): Pagination offset
             
         Returns:
             List[Customer]: List of Customer objects
@@ -29,7 +31,7 @@ class CustomerRepository:
             query = Customer.select().order_by(Customer.name)
             if not include_deleted:
                 query = query.where(Customer.is_deleted == False)
-            return list(query)
+            return list(query.offset(offset).limit(limit))
         except Exception as e:
             raise Exception(f"Failed to retrieve customers: {str(e)}")
     

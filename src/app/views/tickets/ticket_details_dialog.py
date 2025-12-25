@@ -33,6 +33,7 @@ class TicketDetailsDialog(TicketBaseDialog):
         
         # Then set up our ticket-specific attributes
         self.ticket = ticket
+            
         self.ticket_service = ticket_service
         self.ticket_controller = ticket_controller
         self.technician_controller = technician_controller
@@ -48,7 +49,51 @@ class TicketDetailsDialog(TicketBaseDialog):
         self.lm = language_manager
         self.cf = currency_formatter
         
+        # Button references for enabling/disabling
+        self.update_ticket_btn = None
+        self.edit_btn = None
+        self.update_notes_btn = None
+        self.add_part_btn = None
+        self.remove_part_btn = None
+        
         self._setup_ui()
+
+    def _is_editable(self):
+        """Check if the ticket is currently editable"""
+        if self.ticket.is_deleted:
+            return False
+            
+        # Check ticket status
+        if self.ticket.status in ['completed', 'cancelled', 'unrepairable']:
+            return False
+            
+        # Check device status
+        if hasattr(self.ticket, 'device_status') and self.ticket.device_status == 'returned':
+            return False
+            
+        if self.ticket.device:
+            # Check if it's a DTO/Model with .status attribute
+            if hasattr(self.ticket.device, 'status') and self.ticket.device.status == 'returned':
+                return False
+                
+        return True
+
+    def _update_button_states(self):
+        """Update button enabled states based on editability"""
+        editable = self._is_editable()
+        
+        if self.update_ticket_btn:
+            self.update_ticket_btn.setEnabled(editable)
+        if self.edit_btn:
+            self.edit_btn.setEnabled(editable)
+        if self.update_notes_btn:
+            self.update_notes_btn.setEnabled(editable)
+        if self.add_part_btn:
+            self.add_part_btn.setEnabled(editable)
+        if self.remove_part_btn:
+            self.remove_part_btn.setEnabled(editable)
+            
+        self._update_create_invoice_button()
 
     def _setup_ui(self):
         self.setWindowTitle(f"{self.lm.get('Tickets.ticket_details', 'Ticket Details')} - #{self.ticket.ticket_number}")
@@ -111,15 +156,15 @@ class TicketDetailsDialog(TicketBaseDialog):
         # Action buttons (only if not deleted)
         if not self.ticket.is_deleted and self.user:
             # Combined Update Ticket button (status + technician)
-            update_ticket_btn = QPushButton(f"📝 {self.lm.get('Tickets.update_ticket', 'Update Ticket')}")
-            update_ticket_btn.setStyleSheet("background-color: #3B82F6; color: white; font-weight: bold; padding: 8px;")
-            update_ticket_btn.clicked.connect(self._update_ticket)
-            button_layout.addWidget(update_ticket_btn)
+            self.update_ticket_btn = QPushButton(f"📝 {self.lm.get('Tickets.update_ticket', 'Update Ticket')}")
+            self.update_ticket_btn.setStyleSheet("background-color: #3B82F6; color: white; font-weight: bold; padding: 8px;")
+            self.update_ticket_btn.clicked.connect(self._update_ticket)
+            button_layout.addWidget(self.update_ticket_btn)
             
             # Edit Ticket Button
-            edit_btn = QPushButton(f"✏️ {self.lm.get('Tickets.edit_ticket', 'Edit Ticket')}")
-            edit_btn.clicked.connect(self._edit_ticket)
-            button_layout.addWidget(edit_btn)
+            self.edit_btn = QPushButton(f"✏️ {self.lm.get('Tickets.edit_ticket', 'Edit Ticket')}")
+            self.edit_btn.clicked.connect(self._edit_ticket)
+            button_layout.addWidget(self.edit_btn)
             
             # Preview Ticket Button
             preview_btn = QPushButton(f"👁️ {self.lm.get('Common.preview', 'Preview')}")
@@ -132,7 +177,7 @@ class TicketDetailsDialog(TicketBaseDialog):
             self.create_invoice_btn.clicked.connect(self._create_invoice)
             
             # Update button state
-            self._update_create_invoice_button()
+            self._update_button_states()
             
             button_layout.addWidget(self.create_invoice_btn)
 
@@ -253,7 +298,21 @@ class TicketDetailsDialog(TicketBaseDialog):
         tech_group = QGroupBox(self.lm.get("Tickets.assignment", "Assignment"))
         tech_layout = QFormLayout(tech_group)
         
-        tech_name = self.ticket.technician_name or self.lm.get("Tickets.unassigned", "Unassigned")
+        # Resolve technician name robustly
+        tech_name = self.lm.get("Tickets.unassigned", "Unassigned")
+        if self.ticket.assigned_technician:
+            tech = self.ticket.assigned_technician
+            # DTO structure: check .user (UserDTO) or .full_name (fallback)
+            if hasattr(tech, 'user') and tech.user and hasattr(tech.user, 'full_name'):
+                tech_name = tech.user.full_name
+            elif hasattr(tech, 'full_name'):
+                tech_name = tech.full_name
+            # Final fallback for DTO property
+            elif hasattr(self.ticket, 'technician_name'):
+                tech_name = self.ticket.technician_name
+        elif hasattr(self.ticket, 'technician_name'):
+             tech_name = self.ticket.technician_name
+
         tech_layout.addRow(self.lm.get("Tickets.technician", "Technician") + ":", QLabel(f"<b>{tech_name}</b>"))
         
         layout.addWidget(tech_group)
@@ -279,9 +338,10 @@ class TicketDetailsDialog(TicketBaseDialog):
         self.notes_text.setMaximumHeight(100)
         notes_layout.addWidget(self.notes_text)
         
-        update_notes_btn = QPushButton(self.lm.get("Tickets.update_notes", "Update Notes"))
-        update_notes_btn.clicked.connect(self._update_internal_notes)
-        notes_layout.addWidget(update_notes_btn)
+        self.update_notes_btn = QPushButton(self.lm.get("Tickets.update_notes", "Update Notes"))
+        self.update_notes_btn.clicked.connect(self._update_internal_notes)
+        self.update_notes_btn.setEnabled(self._is_editable())
+        notes_layout.addWidget(self.update_notes_btn)
         
         layout.addWidget(notes_group)
         layout.addStretch()
@@ -378,11 +438,11 @@ class TicketDetailsDialog(TicketBaseDialog):
         self.add_part_btn = QPushButton(self.lm.get("TicketActions.add_part", "Add Part"))
         self.add_part_btn.clicked.connect(self._on_add_part)
         # Only enable if we have container context (needed for controllers)
-        self.add_part_btn.setEnabled(True)
+        self.add_part_btn.setEnabled(self._is_editable())
         
         self.remove_part_btn = QPushButton(self.lm.get("TicketActions.remove_part", "Remove Part"))
         self.remove_part_btn.clicked.connect(self._on_remove_part)
-        self.remove_part_btn.setEnabled(True)
+        self.remove_part_btn.setEnabled(self._is_editable())
         
         btn_layout.addWidget(self.add_part_btn)
         btn_layout.addWidget(self.remove_part_btn)
@@ -523,7 +583,12 @@ class TicketDetailsDialog(TicketBaseDialog):
         try:
             technicians = self.technician_controller.list_technicians(active_only=True)
             for tech in technicians:
-                name = tech.full_name if tech.full_name else f"{self.lm.get('Tickets.technician', 'Technician')} #{tech.id}"
+                # Use User name if available
+                display_name = tech.full_name
+                if tech.user:
+                    display_name = tech.user.full_name
+                
+                name = display_name if display_name else f"{self.lm.get('Tickets.technician', 'Technician')} #{tech.id}"
                 tech_combo.addItem(name, tech.id)
         except Exception as e:
             QMessageBox.warning(self, self.lm.get("Common.error", "Error"), f"{self.lm.get('TicketMessages.load_technicians_failed', 'Failed to load technicians')}: {str(e)}")
@@ -646,8 +711,8 @@ class TicketDetailsDialog(TicketBaseDialog):
         # Update window title
         self.setWindowTitle(f"{self.lm.get('Tickets.ticket_details', 'Ticket Details')} - #{self.ticket.ticket_number}")
         
-        # Update create invoice button
-        self._update_create_invoice_button()
+        # Update button states (including invoice button)
+        self._update_button_states()
         
         # Refresh work log tab to show updated data
         try:
@@ -863,6 +928,7 @@ class TicketDetailsDialog(TicketBaseDialog):
             stop_btn = QPushButton(f"⏹ {self.lm.get('Tickets.stop_work_session', 'Stop Work Session')}")
             stop_btn.setStyleSheet("background-color: #e74c3c; color: white; font-weight: bold; padding: 8px;")
             stop_btn.clicked.connect(lambda: self._stop_work_log(active_log.id))
+            stop_btn.setEnabled(self._is_editable())
             active_layout.addWidget(stop_btn)
         else:
             # Show start button
@@ -874,6 +940,7 @@ class TicketDetailsDialog(TicketBaseDialog):
                 start_btn = QPushButton(f"▶ {self.lm.get('Tickets.start_work_session', 'Start Work Session')}")
                 start_btn.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold; padding: 8px;")
                 start_btn.clicked.connect(lambda: self._start_work_log(current_technician.id))
+                start_btn.setEnabled(self._is_editable())
                 active_layout.addWidget(start_btn)
             else:
                 no_tech_label = QLabel(self.lm.get("Tickets.must_be_registered_as_technician", "You must be registered as a technician to log work."))

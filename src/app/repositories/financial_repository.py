@@ -47,7 +47,7 @@ class FinancialRepository:
     def create_transaction(self, data: dict) -> Transaction:
         return Transaction.create(**data)
         
-    def list_transactions(self, start_date=None, end_date=None, branch_id=None, limit=50) -> List[Transaction]:
+    def list_transactions(self, start_date=None, end_date=None, branch_id=None, limit=50, offset=0, filter_type=None) -> List[Transaction]:
         query = Transaction.select().order_by(Transaction.date.desc())
         
         if start_date:
@@ -56,9 +56,15 @@ class FinancialRepository:
             query = query.where(fn.DATE(Transaction.date) <= end_date)
             
         if branch_id:
-            query = query.where(Transaction.branch == branch_id)
+            if branch_id == 1:
+                query = query.where((Transaction.branch == 1) | (Transaction.branch.is_null()))
+            else:
+                query = query.where(Transaction.branch == branch_id)
             
-        return list(query.limit(limit))
+        if filter_type:
+            query = query.where(Transaction.type == filter_type)
+            
+        return list(query.limit(limit).offset(offset))
 
     def delete_transaction(self, transaction_id: int) -> bool:
         try:
@@ -141,7 +147,7 @@ class FinancialRepository:
             "manual_income": manual_income,
             "total_income": total_income,
             "total_expense": total_expense,
-            "net_balance": total_income - total_expense
+            "net_profit": total_income - total_expense
         }
 
     def get_expense_breakdown(self, start_date, end_date, branch_id=None) -> List[Dict]:

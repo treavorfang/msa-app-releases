@@ -103,18 +103,35 @@ class PartRepository:
         except DoesNotExist:
             return None
     
-    def search_parts(self, query: str, limit: int = 100) -> List[Part]:
-        """Search parts by brand, category, name, SKU, compatibility, or barcode."""
-        return list(
-            Part.select().where(
+    def search_parts(self, query: str = "", category_id: Optional[int] = None, 
+                     supplier_id: Optional[int] = None, limit: int = 100, offset: int = 0) -> List[Part]:
+        """Search parts with optional category and supplier filters."""
+        from models.category import Category # Local import to be safe
+        import peewee
+        
+        q = Part.select().join(Category, join_type=peewee.JOIN.LEFT_OUTER)
+        
+        # Apply filters
+        conditions = []
+        if query:
+            conditions.append(
                 (Part.brand.contains(query)) |
-                (Part.category.name.contains(query)) |
+                (Category.name.contains(query)) |
                 (Part.name.contains(query)) |
                 (Part.sku.contains(query)) |
                 (Part.model_compatibility.contains(query)) |
                 (Part.barcode.contains(query))
-            ).limit(limit)
-        )
+            )
+            
+        if category_id:
+            conditions.append(Part.category == category_id)
+        if supplier_id:
+            conditions.append(Part.supplier == supplier_id)
+            
+        if conditions:
+            q = q.where(*conditions)
+            
+        return list(q.offset(offset).limit(limit))
     
     def get_parts_by_category(self, category_name: str) -> List[Part]:
         """Get all parts in a specific category."""

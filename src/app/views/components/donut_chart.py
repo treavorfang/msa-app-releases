@@ -3,7 +3,7 @@ Donut Chart Widget - Custom QPainter implementation
 """
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QToolTip, QPushButton
-from PySide6.QtGui import QPainter, QColor, QBrush, QPen, QFont
+from PySide6.QtGui import QPainter, QColor, QBrush, QPen, QFont, QPainterPath
 from PySide6.QtCore import Qt, QPoint, QRectF
 
 from utils.language_manager import language_manager
@@ -36,6 +36,12 @@ class DonutChartWidget(QWidget):
         self.text_color = text_color
         self.update()
 
+    def set_theme_mode(self, is_dark):
+        """Update colors based on theme mode"""
+        self.text_color = "white" if is_dark else "#1F2937"
+        self.hole_color = "transparent"
+        self.update()
+
     def wheelEvent(self, event):
         """Pass wheel events to parent to enable scrolling over chart"""
         if self.parent():
@@ -59,11 +65,20 @@ class DonutChartWidget(QWidget):
         width = rect.width()
         height = rect.height()
         
-        # Define chart area (square)
+        # Define outer and inner chart areas
         side = min(width, height) - 20
-        chart_rect = QRectF((width - side)/2, (height - side)/2, side, side)
+        outer_rect = QRectF((width - side)/2, (height - side)/2, side, side)
         
-        start_angle = 90 * 16 # Start at top
+        center_hole_ratio = 0.6
+        inner_side = side * center_hole_ratio
+        inner_rect = QRectF(
+            outer_rect.center().x() - inner_side/2,
+            outer_rect.center().y() - inner_side/2,
+            inner_side,
+            inner_side
+        )
+        
+        start_angle = 90.0 # Start at top
         
         for i, item in enumerate(self.data):
             value = item['amount']
@@ -71,7 +86,7 @@ class DonutChartWidget(QWidget):
             
             # Calculate span angle
             percent = value / self.total
-            span_angle = -percent * 360 * 16
+            span_angle = -percent * 360.0
             
             # Setup Pen/Brush
             color = QColor(item['color'])
@@ -81,27 +96,25 @@ class DonutChartWidget(QWidget):
             painter.setBrush(QBrush(color))
             painter.setPen(Qt.NoPen)
             
-            # Draw Pie Slice
-            painter.drawPie(chart_rect, int(start_angle), int(span_angle))
+            # Create a path for the donut segment
+            path = QPainterPath()
+            path.arcMoveTo(outer_rect, start_angle)
+            # Outer arc
+            path.arcTo(outer_rect, start_angle, span_angle)
+            # Inner arc (reverse)
+            path.arcTo(inner_rect, start_angle + span_angle, -span_angle)
+            path.closeSubpath()
+            
+            painter.drawPath(path)
             
             start_angle += span_angle
             
-        # Draw Center Circle (to make it a Donut)
-        center_hole_ratio = 0.6
-        center_rect = QRectF(
-            chart_rect.center().x() - (side * center_hole_ratio)/2,
-            chart_rect.center().y() - (side * center_hole_ratio)/2,
-            side * center_hole_ratio,
-            side * center_hole_ratio
-        )
-        
-        # Use configured hole color or default to match card background if known, else dark
-        hole_color = getattr(self, 'hole_color', "#2D2D2D")
-        painter.setBrush(QBrush(QColor(hole_color)))
-        painter.drawEllipse(center_rect)
-        
         # Draw Total in Center
-        text_color = getattr(self, 'text_color', "white")
+        text_color = getattr(self, 'text_color', None)
+        if text_color is None:
+            from views.components.new_dashboard_widgets import is_dark_theme
+            text_color = "white" if is_dark_theme(self) else "#1F2937"
+            
         painter.setPen(QColor(text_color))
         font = QFont()
         font.setBold(True)
@@ -110,7 +123,7 @@ class DonutChartWidget(QWidget):
         painter.setFont(font)
         
         if hasattr(self, 'center_text'):
-             painter.drawText(center_rect, Qt.AlignCenter, self.center_text)
+             painter.drawText(inner_rect, Qt.AlignCenter, self.center_text)
         
 
 class FinancialBreakdownCard(QWidget):
@@ -223,8 +236,8 @@ class FinancialBreakdownCard(QWidget):
             toggle_hover = "#4B5563"
             toggle_text = "#9CA3AF"
             
-            # Chart colors
-            self.chart.set_colors(bg_color, text_color)
+            # Use the new theme mode for consistent transparency
+            self.chart.set_theme_mode(True)
             
         else:
             # Light Theme Colors
@@ -235,8 +248,8 @@ class FinancialBreakdownCard(QWidget):
             toggle_hover = "#D1D5DB"
             toggle_text = "#6B7280"
             
-            # Chart colors
-            self.chart.set_colors(bg_color, text_color)
+            # Use the new theme mode for consistent transparency
+            self.chart.set_theme_mode(False)
             
         # Apply Stylesheet
         self.setStyleSheet(f"""

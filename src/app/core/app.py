@@ -68,6 +68,17 @@ class MSA:
         self.app = QApplication.instance() or QApplication(sys.argv)
         # Prevent app from quitting when switching windows
         self.app.setQuitOnLastWindowClosed(False)
+
+        # Fusion style removed to match backup (v1.0.4) structure where it was not present here
+        # self.app.setStyle('Fusion')
+
+        # Load custom fonts to prevent "missing font" overhead/warnings
+        try:
+            from utils.font_loader import FontLoader
+            FontLoader.load_fonts()
+            FontLoader.set_application_font()
+        except Exception as e:
+            print(f"⚠️  Failed to load custom fonts: {e}")
         
         # Set application icon
         from PySide6.QtGui import QIcon
@@ -130,7 +141,8 @@ class MSA:
             # 1. ONLINE ACTIVATION CHECK
             # This will show the "Beautiful" Online Login Dialog if needed
             if not self._check_license():
-                sys.exit(0)
+                # Use app.quit() instead of sys.exit() to allow graceful cleanup of QThreads
+                self.app.quit()
                 return
             
             # 2. LOCAL STAFF LOGIN
@@ -198,7 +210,7 @@ class MSA:
             self.show_main_window(user)
         else:
             # User cancelled local login
-            sys.exit(0)
+            self.app.quit()
             
     def _initialize_auth(self):
         """Deprecated/Replaced by show_login logic"""

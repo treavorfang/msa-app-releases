@@ -28,9 +28,9 @@ class CustomerService(ICustomerService):
         self.repository = repository or CustomerRepository()
         self.audit_service = audit_service or AuditService()
     
-    def get_all_customers(self) -> List[CustomerDTO]:
+    def get_all_customers(self, limit: int = 20, offset: int = 0) -> List[CustomerDTO]:
         """Get all active customers as DTOs."""
-        customers = self.repository.get_all()
+        customers = self.repository.get_all(limit=limit, offset=offset)
         return [CustomerDTO.from_model(customer) for customer in customers]
     
     def get_all_customers_including_deleted(self) -> List[CustomerDTO]:

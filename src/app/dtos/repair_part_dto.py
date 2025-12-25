@@ -43,10 +43,12 @@ class RepairPartDTO:
             dto.part_name = repair_part.part.name
             dto.part_sku = repair_part.part.sku
             # Accessing properties might be dangerous if Part model changes, assume attributes exist
-            if hasattr(repair_part.part, 'sell_price'):
-                dto.part_price = float(repair_part.part.sell_price)
+            # Match Model which only has cost_price
             if hasattr(repair_part.part, 'cost_price'):
-                dto.part_cost = float(repair_part.part.cost_price)
+                dto.part_price = float(repair_part.part.cost_price or 0)
+                dto.part_cost = float(repair_part.part.cost_price or 0)
+            elif hasattr(repair_part.part, 'sell_price'):
+                dto.part_price = float(repair_part.part.sell_price or 0)
                 
         if repair_part.technician and hasattr(repair_part.technician, 'user') and repair_part.technician.user:
             dto.technician_name = repair_part.technician.user.name

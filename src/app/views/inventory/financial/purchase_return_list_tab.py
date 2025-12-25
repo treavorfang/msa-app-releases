@@ -52,6 +52,12 @@ class PurchaseReturnListTab(QWidget):
         # Header with title and view switcher
         header_layout = self._create_header()
         layout.addLayout(header_layout)
+
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
         
         # Summary Cards
         summary_layout = self._create_summary_cards()
@@ -76,6 +82,9 @@ class PurchaseReturnListTab(QWidget):
         self.view_stack.addWidget(self.list_view)
         
         layout.addWidget(self.view_stack, 1)
+
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
     
     def _create_header(self):
         """Create header with title and view switcher"""
@@ -433,20 +442,7 @@ class PurchaseReturnListTab(QWidget):
         card.setMaximumHeight(240)
         
         status_color = self._get_status_color(return_obj.status)
-        
-        # Style card
-        card.setStyleSheet(f"""
-            QFrame#returnCard {{
-                background-color: #1F2937;
-                border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#returnCard:hover {{
-                border-color: {status_color};
-                background-color: #374151;
-            }}
-        """)
+        card.status_color = status_color
         
         # Store return data
         card.return_id = return_obj.id
@@ -460,6 +456,7 @@ class PurchaseReturnListTab(QWidget):
         header = QHBoxLayout()
         
         return_label = QLabel(return_obj.return_number)
+        return_label.setObjectName("returnLabel")
         return_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         header.addWidget(return_label)
         
@@ -481,24 +478,28 @@ class PurchaseReturnListTab(QWidget):
         # PO and Supplier
         if return_obj.purchase_order:
             po_label = QLabel(f"📦 {self.lm.get('Returns.po', 'PO')}: {return_obj.purchase_order.po_number}")
-            po_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            po_label.setObjectName("metaLabel")
+            po_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(po_label)
             
             if return_obj.purchase_order.supplier:
                 supplier_label = QLabel(f"🏢 {return_obj.purchase_order.supplier.name}")
-                supplier_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+                supplier_label.setObjectName("metaLabel")
+                supplier_label.setStyleSheet("font-size: 12px;")
                 layout.addWidget(supplier_label)
         
         # Date
         return_date = return_obj.return_date.strftime("%Y-%m-%d") if return_obj.return_date else "N/A"
         date_label = QLabel(f"📅 {return_date}")
-        date_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        date_label.setObjectName("metaLabel")
+        date_label.setStyleSheet("font-size: 12px;")
         layout.addWidget(date_label)
         
         # Reason (truncated)
         reason = return_obj.reason[:40] + "..." if len(return_obj.reason) > 40 else return_obj.reason
         reason_label = QLabel(f"💬 {reason}")
-        reason_label.setStyleSheet("color: #9CA3AF; font-size: 11px;")
+        reason_label.setObjectName("metaLabel")
+        reason_label.setStyleSheet("font-size: 11px;")
         layout.addWidget(reason_label)
         
         layout.addStretch()
@@ -507,6 +508,9 @@ class PurchaseReturnListTab(QWidget):
         amount_label = QLabel(self.cf.format(return_obj.total_amount))
         amount_label.setStyleSheet("color: #EF4444; font-size: 18px; font-weight: bold;")
         layout.addWidget(amount_label)
+        
+        # Initial style
+        self._update_card_style(card)
         
         return card
     
@@ -599,7 +603,61 @@ class PurchaseReturnListTab(QWidget):
                 self._load_returns()
             else:
                 QMessageBox.warning(self, self.lm.get("Returns.error", "Error"), self.lm.get("Returns.failed_to_approve", "Failed to approve return."))
+    def _update_card_style(self, card):
+        """Update card style based on theme"""
+        status_color = getattr(card, 'status_color', '#3B82F6')
+        is_dark = self.current_theme == 'dark'
+        
+        if is_dark:
+            bg_color = "#1F2937"
+            border_color = "#374151"
+            hover_bg = "#374151"
+            hover_border = status_color
+            text_color = "white"
+            meta_color = "#9CA3AF" # Gray 400
+        else: # Light
+            bg_color = "#FFFFFF"
+            border_color = "#E5E7EB"
+            hover_bg = "#F9FAFB" # Gray 50
+            hover_border = status_color
+            text_color = "#111827" # Gray 900
+            meta_color = "#4B5563" # Gray 600
 
+        card.setStyleSheet(f"""
+            QFrame#returnCard {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#returnCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg};
+            }}
+            QLabel#returnLabel {{
+                color: {text_color};
+            }}
+            QLabel#metaLabel {{
+                color: {meta_color};
+            }}
+        """)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_cards_style()
+        
+    def _update_all_cards_style(self):
+        """Update style for all cards"""
+        # Ensure cards_layout exists before iterating
+        if not hasattr(self, 'cards_layout'):
+            return 
+            
+        for i in range(self.cards_layout.count()):
+            item = self.cards_layout.itemAt(i)
+            if item and item.widget():
+                card = item.widget()
+                self._update_card_style(card)
     def showEvent(self, event):
         """Lazy load data when tab is shown"""
         super().showEvent(event)

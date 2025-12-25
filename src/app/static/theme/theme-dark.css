@@ -1,4 +1,4 @@
-/*
+ /*
  * theme.css - Dark Theme for Mobile Service Accounting (Gray/Blue Version)
  */
 
@@ -11,8 +11,7 @@ QWidget {
   /* Dark gray background */
   color: #e0e0e0;
   /* Light gray text */
-  font-family: "Inter", "Segoe UI", ".AppleSystemUIFont", "Helvetica Neue",
-    Arial, sans-serif;
+  font-family: "Inter", ".AppleSystemUIFont", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 10pt;
 }
 
@@ -206,6 +205,8 @@ QTabWidget::pane {
   border-bottom-right-radius: 4px;
 }
 
+
+
 QTabBar::tab {
   background: #333333;
   color: #e0e0e0;
@@ -314,8 +315,7 @@ QCheckBox::indicator:checked {
 QDialog.themed-dialog {
   background-color: #2d2d2d;
   color: #f0f0f0;
-  font-family: "Inter", "Segoe UI", ".AppleSystemUIFont", "Helvetica Neue",
-    Arial, sans-serif;
+  font-family: "Inter", ".AppleSystemUIFont", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   padding: 20px;
 }
 

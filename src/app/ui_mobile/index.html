@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>MSA Mobile - Management System</title>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0c0c0c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MSA Mobile" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="stylesheet" href="css/main.css?v=1.0.0" />
+    <link rel="stylesheet" href="css/theme.css?v=1.0.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  </head>
+  <body class="dark-theme">
+    <div id="app">
+      <!-- Rendered by JS -->
+      <!-- Pairing Screen -->
+      <div id="pairing-screen" class="screen">
+        <div class="login-decoration-orb"></div>
+        <div class="login-container">
+          <div class="login-header">
+            <div class="logo-text">DEVICE<span>PAIRING</span></div>
+            <div class="welcome-badge">Security</div>
+          </div>
+          
+          <div class="screen-welcome">
+            <h1>Pair Device</h1>
+            <p>Enter the 4-digit PIN shown on the workshop monitor to authorize this device.</p>
+          </div>
+
+          <form id="pairing-form">
+            <div class="input-group">
+              <label for="pairing-pin">Security PIN</label>
+              <div class="input-wrapper">
+                <span class="input-icon">🔑</span>
+                <input
+                  type="text"
+                  id="pairing-pin"
+                  placeholder="0000"
+                  maxlength="4"
+                  pattern="\d{4}"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+            <button type="submit" class="btn-primary-premium">
+              <span class="btn-text">Verify & Connect</span>
+              <span class="btn-glow"></span>
+            </button>
+          </form>
+          <div id="pairing-error" class="error-msg"></div>
+          
+          <div class="entry-footer">
+            <span>Secure Connection</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Login Screen -->
+      <div id="login-screen" class="screen">
+        <div class="login-decoration-orb"></div>
+        <div class="login-container">
+          <div class="login-header">
+            <div class="logo-text">MSA<span>MOBILE</span></div>
+            <div class="welcome-badge">Premium Access</div>
+          </div>
+          
+          <div class="screen-welcome">
+            <h1>Welcome Back</h1>
+            <p>Ready to manage your shop? Sign in to access your workbench.</p>
+          </div>
+
+          <form id="login-form">
+            <div class="input-group">
+              <label for="username">Username / Full Name</label>
+              <div class="input-wrapper">
+                <span class="input-icon">👤</span>
+                <input
+                  type="text"
+                  id="username"
+                  placeholder="Enter ID or Full Name"
+                  required
+                />
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="password">Password / PIN</label>
+              <div class="input-wrapper">
+                <span class="input-icon">🔒</span>
+                <input
+                  type="password"
+                  id="password"
+                  placeholder="Enter password or 4-digit PIN"
+                  required
+                />
+              </div>
+            </div>
+            <button type="submit" class="btn-primary-premium">
+              <span class="btn-text">Login to Workbench</span>
+              <span class="btn-glow"></span>
+            </button>
+          </form>
+          <div id="login-error" class="error-msg"></div>
+          
+          <div class="entry-footer">
+            <span>Workbench v5.8</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="main-screen" class="screen">
+        <header>
+          <div class="header-content" id="header-normal">
+            <span id="user-role-badge" class="badge">Tech</span>
+            <h2 id="screen-title">My Workbench</h2>
+            <button id="header-search-btn" class="header-icon-btn">🔍</button>
+          </div>
+          <div class="header-search-bar" id="header-search-bar" style="display: none;">
+             <input type="text" id="global-search-input" placeholder="Search ticket, client, serial..." autocomplete="off">
+             <button id="close-search-btn" class="header-icon-btn" style="border: none; background: transparent; width: 32px;">✕</button>
+          </div>
+        </header>
+
+        <main id="content">
+          <!-- Content injected here -->
+        </main>
+
+        <nav class="bottom-nav">
+          <a href="#" class="nav-item active" data-screen="dashboard">
+            <span class="icon">🏠</span>
+            <span>Shop Hub</span>
+          </a>
+          <a href="#" class="nav-item" data-screen="customers">
+            <span class="icon">👥</span>
+            <span>Clients</span>
+          </a>
+          <a href="#" class="nav-item" data-screen="invoices">
+            <span class="icon">💰</span>
+            <span>Invoices</span>
+          </a>
+          <a href="#" class="nav-item" data-screen="financial">
+            <span class="icon">💵</span>
+            <span>Finance</span>
+          </a>
+          <a href="#" class="nav-item" data-screen="inventory">
+            <span class="icon">📦</span>
+            <span>Stock</span>
+          </a>
+          <a href="#" class="nav-item" data-screen="scanner">
+            <span class="icon">🔍</span>
+            <span>Scan</span>
+          </a>
+        </nav>
+      </div>
+
+
+    <!-- Core Scripts (Versioned for Cache Busting) -->
+    <script src="js/i18n.js?v=5.8"></script>
+    <script type="module" src="js/app.js?v=5.8"></script>
+    
+    <!-- Component scripts are loaded as modules via app.js -->
+
+    <!-- Global FAB (Isolated at Body Root for v3.0) -->
+    <div class="fab" id="global-fab" style="display: none;">
+      <span>+</span>
+    </div>
+  </body>
+</html>

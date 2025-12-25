@@ -294,6 +294,11 @@ class Ticket(BaseModel):
         help_text="When repair was completed"
     )
     
+    updated_at = DateTimeField(
+        default=datetime.now,
+        help_text="When ticket was last updated"
+    )
+
     # ==================== Soft Delete ====================
     
     is_deleted = BooleanField(
@@ -345,18 +350,49 @@ class Ticket(BaseModel):
             branch_id = 1
         elif hasattr(branch_id, 'id'):  # Handle if Branch object is passed
             branch_id = branch_id.id
+            
+        # 1. Determine the prefix based on format WITHOUT the sequence part
+        # We assume the format ends with -{seq} or {seq}
+        # Example: RPT-{branch}{date}-{seq} -> Prefix: RPT-1241224-
         
-        # Get the last ticket number globally
-        last_ticket = cls.select().order_by(cls.ticket_number.desc()).first()
+        # Safe format call by passing dummy sequence to split
+        # This allows us to construct the prefix dynamically
+        dummy_seq = "____"
+        formatted_dummy = fmt.format(
+            branch=branch_id,
+            date=today,
+            seq=dummy_seq
+        )
+        
+        # The prefix is everything before the dummy sequence
+        prefix = formatted_dummy.replace(dummy_seq, "")
+        
+        # 2. Find the last ticket that matches this prefix
+        last_ticket = (cls
+            .select()
+            .where(cls.ticket_number.startswith(prefix))
+            .order_by(cls.ticket_number.desc())
+            .first())
         
         sequence = 1
         if last_ticket:
-            # Extract the last 4 digits as sequence
-            match = re.search(r"(\d{4})$", last_ticket.ticket_number)
-            if match:
-                sequence = int(match.group(1)) + 1
-                if sequence > 9999:
+            # Extract the sequence part by removing the prefix
+            # This is more robust than fixed regex if prefix varies length
+            try:
+                suffix = last_ticket.ticket_number.replace(prefix, "")
+                # remove any surrounding non-digits if regex was loose?
+                # Actually, simply extracting digits from the suffix is safest
+                match = re.search(r"(\d+)$", suffix)
+                if match:
+                    sequence = int(match.group(1)) + 1
+                    # Handle max limit if strictly 4 digits (9999 -> 1 only if 4 digits constraint exists? 
+                    # Usually we let it grow -> 10000, unless format forces :04d clipping?
+                    # Python :04d doesn't clip, it just pads. So 10000 stays 10000.
+                else:
+                    # Fallback if suffix is weird
                     sequence = 1
+            except Exception:
+                sequence = 1
         
         return fmt.format(
             branch=branch_id,
@@ -378,6 +414,8 @@ class Ticket(BaseModel):
         """
         if not self.ticket_number:
             self.ticket_number = self.generate_ticket_number(self.branch)
+        
+        self.updated_at = datetime.now()
         return super().save(*args, **kwargs)
     
     def __str__(self):

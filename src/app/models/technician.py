@@ -28,8 +28,15 @@ class Technician(BaseModel):
     created_by = ForeignKeyField('self', null=True, backref='technicians_created', help_text="Creator")
     updated_by = ForeignKeyField('self', null=True, backref='technicians_updated', help_text="Last updater")
     
+    # NEW: Link to User System
+    from models.user import User
+    user = ForeignKeyField(User, backref='technician_profile', null=True, unique=True, help_text="Linked User Account")
+
     class Meta:
         table_name = 'technicians'
     
     def __str__(self):
+        # Fallback to local name if not linked, else use User name
+        if self.user:
+            return self.user.full_name
         return self.full_name

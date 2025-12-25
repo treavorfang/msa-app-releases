@@ -218,6 +218,12 @@ class UsersTab(QWidget):
                     user.branch_id = int(branch_id) if branch_id is not None else None
                         
                     if password:
+                        # Validate password
+                        from utils.validation.input_validator import InputValidator
+                        is_valid, msg = InputValidator.validate_password(password, is_local=True)
+                        if not is_valid:
+                            MessageHandler.show_error(self, self.lm.get("Admin.validation_error", "Validation Error"), msg)
+                            return
                         user.set_password(password)
                         
                     self.user_repo.update_user(user)
@@ -227,6 +233,14 @@ class UsersTab(QWidget):
                 if not password:
                     MessageHandler.show_warning(self, self.lm.get("Admin.validation_error", "Validation Error"), self.lm.get("Admin.error_password_required", "Password is required for new users."))
                     return
+                
+                # Validate password
+                from utils.validation.input_validator import InputValidator
+                is_valid, msg = InputValidator.validate_password(password, is_local=True)
+                if not is_valid:
+                    MessageHandler.show_error(self, self.lm.get("Admin.validation_error", "Validation Error"), msg)
+                    return
+                
                 # Use auth service or repo to create? Repo has create_user
                 user, success = self.user_repo.create_user(username, email, password)
                 if success:

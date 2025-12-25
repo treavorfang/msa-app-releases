@@ -13,6 +13,7 @@ from utils.language_manager import language_manager
 from utils.currency_formatter import currency_formatter
 from core.event_bus import EventBus
 from core.events import BranchContextChangedEvent
+from views.components.donut_chart import DonutChartWidget
 
 class ReportsTab(QWidget):
     def __init__(self, container):
@@ -155,56 +156,26 @@ class ReportsTab(QWidget):
         left_column = QVBoxLayout()
         left_column.setSpacing(10)
         
-        try:
-            from views.components.dashboard_charts import StatusDistributionChart
-            import matplotlib.pyplot as plt
-            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-            from matplotlib.figure import Figure
-            
-            # Status chart
-            status_container = self._create_chart_container(self.lm.get("Reports.status_distribution", "Status Distribution"))
-            status_layout = status_container.layout()
-            self.status_chart = StatusDistributionChart()
-            self.status_chart.setMinimumHeight(300)
-            status_layout.addWidget(self.status_chart)
-            left_column.addWidget(status_container)
-            
-            # Revenue chart - Simple design like modern dashboard
-            revenue_container = self._create_chart_container(self.lm.get("Reports.revenue_trend", "Revenue Trend"))
-            revenue_layout = revenue_container.layout()
-            
-            # Use WaveChart instead of Matplotlib
-            self.wave_chart = WaveChart()
-            self.wave_chart.setMinimumHeight(300)
-            self.wave_chart.set_formatter(lambda x: self.cf.format(x))
-            revenue_layout.addWidget(self.wave_chart)
-            left_column.addWidget(revenue_container)
-            
-            self.charts_enabled = True
-            
-        except ImportError:
-            error_container = QFrame()
-            error_container.setObjectName("cardFrame")
-            error_layout = QVBoxLayout(error_container)
-            error_layout.setContentsMargins(40, 40, 40, 40)
-            
-            error_icon = QLabel("📊")
-            error_icon.setStyleSheet("font-size: 48px;")
-            error_icon.setAlignment(Qt.AlignCenter)
-            error_layout.addWidget(error_icon)
-            
-            error_label = QLabel(self.lm.get("Reports.charts_unavailable", "Charts Unavailable"))
-            error_label.setStyleSheet("font-size: 20px; font-weight: bold;")
-            error_label.setAlignment(Qt.AlignCenter)
-            error_layout.addWidget(error_label)
-            
-            error_desc = QLabel(self.lm.get("Reports.matplotlib_required", "Matplotlib is required for visualizations.\nInstall it with: pip install matplotlib"))
-            error_desc.setObjectName("metricLabel")
-            error_desc.setAlignment(Qt.AlignCenter)
-            error_layout.addWidget(error_desc)
-            
-            left_column.addWidget(error_container)
-            self.charts_enabled = False
+        # Status chart
+        status_container = self._create_chart_container(self.lm.get("Reports.status_distribution", "Status Distribution"))
+        status_layout = status_container.layout()
+        self.status_chart = DonutChartWidget()
+        self.status_chart.setMinimumHeight(400) # Increased for better visibility
+        status_layout.addWidget(self.status_chart)
+        left_column.addWidget(status_container)
+        
+        # Revenue chart - Simple design like modern dashboard
+        revenue_container = self._create_chart_container(self.lm.get("Reports.revenue_trend", "Revenue Trend"))
+        revenue_layout = revenue_container.layout()
+        
+        # Use WaveChart instead of Matplotlib
+        self.wave_chart = WaveChart()
+        self.wave_chart.setMinimumHeight(400)
+        self.wave_chart.set_formatter(lambda x: self.cf.format(x))
+        revenue_layout.addWidget(self.wave_chart)
+        left_column.addWidget(revenue_container)
+        
+        self.charts_enabled = True
         
         # Right column - Stats and Activity
         right_column = QVBoxLayout()
@@ -427,7 +398,29 @@ class ReportsTab(QWidget):
         self.metric_cards["avg_revenue"].update_value(self.cf.format(avg_revenue))
         
         # Update charts
-        self.status_chart.update_chart(status_dist)
+        # Format status distribution for DonutChartWidget
+        chart_data = []
+        status_colors = {
+            'open': '#3B82F6',           # Bright Blue
+            'diagnosed': '#A855F7',      # Purple
+            'in_progress': '#F59E0B',    # Orange
+            'awaiting_parts': '#EF4444', # Red
+            'completed': '#10B981',      # Green
+            'cancelled': '#EC4899',      # Pink
+            'unrepairable': '#6B7280',   # Gray
+            'returned': '#10B981'        # Same as completed
+        }
+
+        for status, count in status_dist.items():
+            if count > 0:
+                label = self.lm.get(f"Common.{status}", status.replace('_', ' ').title())
+                chart_data.append({
+                    'name': label,
+                    'amount': count,
+                    'color': status_colors.get(status, '#6B7280')
+                })
+        
+        self.status_chart.set_data(chart_data, center_text=f"{stats['total_tickets']}\n{self.lm.get('Common.total', 'Total')}")
         
         # Update revenue chart - Simple design like modern dashboard
         revenue_trend = self.ticket_service.get_revenue_trend(

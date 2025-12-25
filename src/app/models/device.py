@@ -197,6 +197,11 @@ class Device(BaseModel):
         help_text="When repair was completed"
     )
     
+    updated_at = DateTimeField(
+        default=datetime.now,
+        help_text="When device was last updated"
+    )
+
     # ==================== Soft Delete ====================
     
     is_deleted = BooleanField(
@@ -281,6 +286,8 @@ class Device(BaseModel):
                 attempts += 1
             else:
                 raise ValueError("Could not generate unique barcode")
+        
+        self.updated_at = datetime.now()
         return super().save(*args, **kwargs)
     
     def __str__(self):

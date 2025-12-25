@@ -25,9 +25,10 @@ class TechnicianRepository:
     
     def get_by_user(self, user_id: int) -> Optional[Technician]:
         """Get technician by associated user ID."""
-        # Note: This method was marked for removal/redesign in original file
-        # Keeping it for interface compatibility, returning None as per original
-        return None
+        try:
+            return Technician.get(Technician.user == user_id)
+        except Technician.DoesNotExist:
+            return None
     
     def update(self, technician_id: int, update_data: dict) -> Optional[Technician]:
         """Update technician details."""

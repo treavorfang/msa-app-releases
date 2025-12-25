@@ -36,7 +36,7 @@ class FinancialService:
             "date": date_obj,
             "description": description,
             "payment_method": payment_method,
-            "branch": branch_id or (getattr(current_user, 'branch_id', 1) if current_user else 1),
+            "branch": branch_id or (getattr(current_user, 'branch_id', None) or 1 if current_user else 1),
             "created_by": user_id or (getattr(current_user, 'id', None) if current_user else None)
         }
         
@@ -57,9 +57,14 @@ class FinancialService:
         """Get summary stats for financial dashboard."""
         return self.repository.get_financial_summary(start_date, end_date, branch_id)
         
-    def get_recent_transactions(self, limit: int = 50, branch_id: int = None) -> List[TransactionDTO]:
+    def get_recent_transactions(self, limit: int = 50, offset: int = 0, filter_type: str = None, branch_id: int = None) -> List[TransactionDTO]:
         """Get list of recent transactions."""
-        transactions = self.repository.list_transactions(branch_id=branch_id, limit=limit)
+        transactions = self.repository.list_transactions(
+            branch_id=branch_id, 
+            limit=limit, 
+            offset=offset,
+            filter_type=filter_type
+        )
         return [TransactionDTO.from_model(t) for t in transactions]
         
     def get_categories(self, is_income: bool = None) -> List[ExpenseCategoryDTO]:

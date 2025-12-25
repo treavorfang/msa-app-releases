@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 from dtos.device_dto import DeviceDTO
 from dtos.customer_dto import CustomerDTO
+from dtos.technician_dto import TechnicianDTO
 
 @dataclass
 class TicketDTO:
@@ -33,8 +34,62 @@ class TicketDTO:
     # Related objects (for UI display)
     device: Optional[DeviceDTO] = None
     customer: Optional[CustomerDTO] = None
-    technician_name: Optional[str] = None
+    assigned_technician: Optional[TechnicianDTO] = None
+    technician_full_name: Optional[str] = None  # Internal use
     created_by_name: Optional[str] = None
+    photos: Optional[list] = None
+    
+    @property
+    def device_name(self) -> str:
+        if self.device:
+            brand = self.device.brand or ""
+            model = self.device.model or ""
+            return f"{brand} {model}".strip() or "Unknown Device"
+        return "No Device"
+
+    @property
+    def device_status(self) -> str:
+        return self.device.status if self.device else "unknown"
+
+    @property
+    def customer_name(self) -> str:
+        return self.customer.name if self.customer else "Unknown Customer"
+
+    @property
+    def technician_name(self) -> str:
+        return self.technician_full_name or "Unassigned"
+
+    @property
+    def brand(self) -> str:
+        return self.device.brand if self.device else ""
+
+    @property
+    def model(self) -> str:
+        return self.device.model if self.device else ""
+
+    @property
+    def serial_number(self) -> str:
+        return self.device.serial_number if self.device else ""
+
+    @property
+    def imei(self) -> str:
+        return self.device.imei if self.device else ""
+
+    @property
+    def color(self) -> str:
+        return self.device.color if self.device else ""
+
+    @property
+    def condition(self) -> str:
+        return self.device.condition if self.device else ""
+
+    @property
+    def passcode(self) -> str:
+        return self.device.passcode if self.device else ""
+
+    @property
+    def lock_type(self) -> str:
+        return self.device.lock_type if self.device else ""
     
     @classmethod
     def from_model(cls, ticket) -> 'TicketDTO':
@@ -65,8 +120,10 @@ class TicketDTO:
             # Related objects
             device=DeviceDTO.from_model(ticket.device) if ticket.device else None,
             customer=CustomerDTO.from_model(ticket.device.customer) if ticket.device and ticket.device.customer else None,
-            technician_name=ticket.assigned_technician.full_name if ticket.assigned_technician and ticket.assigned_technician.full_name else None,
-            created_by_name=ticket.created_by.full_name if ticket.created_by else None
+            assigned_technician=TechnicianDTO.from_model(ticket.assigned_technician) if ticket.assigned_technician else None,
+            technician_full_name=ticket.assigned_technician.full_name if ticket.assigned_technician and ticket.assigned_technician.full_name else None,
+            created_by_name=ticket.created_by.full_name if ticket.created_by else None,
+            photos=list(ticket.photos) if hasattr(ticket, 'photos') else []
         )
     
     def to_dict(self) -> dict:

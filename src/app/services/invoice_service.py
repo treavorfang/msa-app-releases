@@ -34,6 +34,11 @@ class InvoiceService(IInvoiceService):
         
         invoice = self.invoice_repo.create(invoice_data)
         
+        # Automate Device Status: Invoice creation implies device is returned to customer
+        if invoice.device:
+            invoice.device.status = 'returned'
+            invoice.device.save()
+        
         # Handle initial items if provided
         if items:
             for item_data in items:

@@ -21,13 +21,22 @@ class ModernPartsListTab(QWidget):
         self.lm = language_manager
         
         # Search timer for debounce
-        self.search_timer = QTimer()
+        self.search_timer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.setInterval(300)
         self.search_timer.timeout.connect(self._perform_search)
         
         self._setup_ui()
         self._connect_signals()
+        
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
+             
+        self._update_all_styles()
+        
         # self._load_data()
         self._data_loaded = False
         
@@ -59,7 +68,10 @@ class ModernPartsListTab(QWidget):
         # Search
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(self.lm.get("Inventory.search_parts", "Search parts by SKU, name, brand..."))
-        self.search_input.setStyleSheet("""
+        self.search_input.setPlaceholderText(self.lm.get("Inventory.search_parts", "Search parts by SKU, name, brand..."))
+        # Style set by _update_input_style
+        """
+        self.search_input.setStyleSheet(\"\"\"
             QLineEdit {
                 padding: 8px 12px;
                 border: 1px solid #374151;
@@ -69,7 +81,8 @@ class ModernPartsListTab(QWidget):
             QLineEdit:focus {
                 border-color: #3B82F6;
             }
-        """)
+        \"\"\")
+        """
         self.search_input.textChanged.connect(self._on_search_changed)
         toolbar_layout.addWidget(self.search_input)
         
@@ -117,7 +130,9 @@ class ModernPartsListTab(QWidget):
         self.parts_table.doubleClicked.connect(self._on_part_double_clicked)
         
         # Table Styling
-        self.parts_table.setStyleSheet("""
+        # Table Styling handled by _update_table_style
+        """
+        self.parts_table.setStyleSheet(\"\"\"
             QTableWidget {
                 border: 1px solid #374151;
                 border-radius: 8px;
@@ -133,7 +148,8 @@ class ModernPartsListTab(QWidget):
                 border-bottom: 2px solid #374151;
                 font-weight: bold;
             }
-        """)
+        \"\"\")
+        """
         
         layout.addWidget(self.parts_table)
         
@@ -201,6 +217,66 @@ class ModernPartsListTab(QWidget):
             }}
         """)
         return btn
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_styles()
+        self._load_data()
+        
+    def _update_all_styles(self):
+        """Update all styles based on current theme"""
+        self._update_table_style()
+        self._update_input_style()
+        
+    def _update_table_style(self):
+        """Update table widget style"""
+        is_dark = self.current_theme == 'dark'
+        border_color = "#374151" if is_dark else "#E5E7EB"
+        
+        self.parts_table.setStyleSheet(f"""
+            QTableWidget {{
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                gridline-color: {border_color};
+                background-color: {'#1F2937' if is_dark else '#FFFFFF'};
+                color: {'white' if is_dark else 'black'};
+            }}
+            QTableWidget::item {{
+                padding: 8px;
+                border-bottom: 1px solid {border_color};
+                color: {'white' if is_dark else 'black'};
+            }}
+            QHeaderView::section {{
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid {border_color};
+                font-weight: bold;
+                background-color: {'#374151' if is_dark else '#F3F4F6'};
+                color: {'white' if is_dark else 'black'};
+            }}
+        """)
+        
+    def _update_input_style(self):
+        """Update input field style"""
+        is_dark = self.current_theme == 'dark'
+        border_color = "#374151" if is_dark else "#D1D5DB"
+        bg_color = "#1F2937" if is_dark else "#FFFFFF"
+        text_color = "white" if is_dark else "black"
+        
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                padding: 8px 12px;
+                border: 1px solid {border_color};
+                border-radius: 6px;
+                min-width: 250px;
+                background-color: {bg_color};
+                color: {text_color};
+            }}
+            QLineEdit:focus {{
+                border-color: #3B82F6;
+            }}
+        """)
 
     def _connect_signals(self):
         # Connect signals for auto-refresh
@@ -276,12 +352,14 @@ class ModernPartsListTab(QWidget):
             
             # Highlight stock levels
             if col == 6:  # Stock column
+                is_dark = self.current_theme == 'dark'
                 if part.current_stock <= 0:
-                    item.setForeground(QColor("#EF4444")) # Red text
-                    item.setBackground(QColor("#FEF2F2")) # Light red bg
+                    item.setForeground(QColor("#EF4444") if not is_dark else QColor("#F87171")) # Red
+                    # Light red bg for light mode, Dark red bg for dark mode (transparent/darker)
+                    item.setBackground(QColor("#FEF2F2") if not is_dark else QColor("#7F1D1D")) 
                 elif part.current_stock <= part.min_stock_level:
-                    item.setForeground(QColor("#F59E0B")) # Orange text
-                    item.setBackground(QColor("#FFFBEB")) # Light orange bg
+                    item.setForeground(QColor("#F59E0B") if not is_dark else QColor("#FBBF24")) # Orange
+                    item.setBackground(QColor("#FFFBEB") if not is_dark else QColor("#78350F")) # Dark orange bg
             
             self.parts_table.setItem(row, col, item)
 

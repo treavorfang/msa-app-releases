@@ -42,7 +42,7 @@ class TicketBase:
             'low': '#10B981',      # Green
             'medium': '#F59E0B',   # Orange
             'high': '#EF4444',     # Red
-            'urgent': '#DC2626'    # Dark Red
+            'critical': '#DC2626'    # Dark Red
         }
         return colors.get(priority, '#6B7280')
 

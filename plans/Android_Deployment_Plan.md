@@ -1,130 +1,87 @@
-# Android Deployment Plan for MSA
+# MSA Lite: Android Deployment Plan
 
-This document outlines the steps to port the existing PySide6 (Qt) application (MSA) to Android.
+This document outlines the strategy for building **MSA Lite**, a standalone functionality-focused mobile application for solopreneurs.
 
-## 1. Prerequisites
+## 1. Product Vision: "MSA Lite"
 
-To build for Android, you need a development environment set up with:
+A lightweight, offline-first repair shop management app for Android.
+**Target Audience:** Freelancers, Solopreneurs, Small Shop Owners.
+**Pricing Model:** One-time purchase or low-cost subscription.
 
-- **Java Development Kit (JDK)**: Version 11 or 17 recommended.
-- **Android SDK Only (via command line)** or **Android Studio** (for SDK manager and emulator).
-- **Android NDK**: Required for compiling Python C-extensions (like `cryptography`, `peewee`).
+### ✅ Core Features (Scope)
 
-## 2. Tools
+1.  **Quick Intake:** Create tickets (Customer + Device + Issue + Price).
+2.  **Simple Workflow:** Open -> In Progress -> Ready -> Pickup.
+3.  **POS & Receipts:** Generate simple invoices and print to **Bluetooth Thermal Printers**.
+4.  **Customer Rolodex:** Simple list with "Click to Call/WhatsApp".
+5.  **Mini Dashboard:** Weekly Income + Device Count.
 
-We will use **PySide6's Deployment Tool** (`pyside6-deploy`).
-This tool automates the process of:
+### ❌ Excluded Features (Reduced Bloat)
 
-1.  Packaging your Python code.
-2.  Downloading a pre-built Qt implementation for Android.
-3.  Generating an Android APK/AAB.
+- Inventory / Stock Management.
+- Supplier / Purchase Orders.
+- Staff / Roles / Permissions.
+- PC Synchronization (This is a standalone app).
 
-## 3. Deployment Steps
+---
 
-### Step 1: Install Deployment Tools
+## 2. Technical Architecture
 
-Install `pyside6-deploy` in your development environment:
+### A. The Engine
 
-```bash
-pip install pyside6-deploy
-```
+We will reuse the existing **Python (PySide6)** logic but adapted for Android.
 
-### Step 2: Generate Deployment Configuration
+- **Language:** Python 3.11 (via PySide6).
+- **UI Framework:** PySide6 (QML recommended for mobile smoothness) OR Flet (Flutter-like Python). _Decision Required._ Since we want a "Lite" app, rewriting the UI in **Flet** might be faster and look more "native" than porting the complex Qt desktop widgets.
+- **Database:** SQLite (Local storage on phone). `msa_lite.db`.
 
-Run the deploy tool in the root directory of your project (where `src` is accessible):
+### B. Directory Structure (Clarification)
 
-```bash
-pyside6-deploy
-```
+**Do we need to move files to the root?**
+**No.** We do _not_ need to physically move all files to the root directory just to build the APK.
 
-This interactive command will ask you to:
-
-- Name the application (MSA).
-- Point to the entry point (`src/app/main.py`).
-- Select the `requirements.txt` file.
-
-It will generate a `pysidedeploy.spec` file. You can commit this file to your repository.
-
-### Step 3: Configure Dependencies (`pysidedeploy.spec`)
-
-Open `pysidedeploy.spec` and ensure:
-
-- `requirements` list includes `peewee`, `reportlab`, `cryptography`, etc.
-- **Windows-only dependencies** like `pywin32` or `psutil` (platform conditional) must be **excluded** or handled carefully. The build process runs on your host (Mac/Windows), but compiles for Android. `pywin32` will definitely break the build if included for Android.
-- Ensure `modules` list includes essential Qt modules used (`QtWidgets`, `QtSql`, `QtGui`, `QtCore`).
-
-### Step 4: Handle Local Files
-
-Android apps are packaged as zipped assets.
-
-- If your app writes files (LOGS, DATABASE), you **cannot** write to the application folder.
-- You typically need to use `QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)` to find a writable path on Android.
-- Verify `src/app/config/flags.py` logic for `get_db_path` uses standard paths or environment variables that work on Android.
-
-### Step 5: Build the APK
-
-Run the deploy command again to build:
-
-```bash
-pyside6-deploy
-```
-
-If successful, this will produce an `.apk` file in the build directory.
-
-## 4. Code Adjustments Required
-
-1.  **UI Layout**: The current `MainWindow` is likely designed for desktop dimensions (1024x768+). On a phone, this will be unusable.
-    - **Strategy**: Implement a `MobileMainWindow` or use `QScroller` areas to allow panning.
-    - **Response**: Mobile interfaces use different patterns (Stack navigation vs Tab navigation). You might need a simplified UI for mobile.
-2.  **Permissions**: Android requires explicit permissions (Camera, Internet, Storage) in `AndroidManifest.xml` (which the deploy tool can help generate/modify).
-    - Camera is needed for QR code scanning.
-3.  **File System**: Ensure no absolute paths (like `C:/` or `/Users/`) are hardcoded.
-
-## 6. Architectural Considerations (Future Refactoring)
-
-When you are ready to begin development on the mobile app (`msa_mobile`), you will likely need to restructure the project to share logic between the Desktop and Mobile applications.
-
-### A. The "Shared Core" Strategy
-
-To avoid writing business logic twice, the project should eventually be refactored into:
+However, `pyside6-deploy` works best when the entry point is simple.
+We should organize the project virtually:
 
 ```text
 /PyProject/msa/
    ├── src/
-   │    ├── core/           <-- Shared logic (Models, Controllers, Database, Services)
-   │    ├── app/            <-- Current Desktop UI (PySide6 Desktop)
-   │    └── msa_mobile/     <-- Future Mobile UI (PySide6 Mobile / Flet)
+   │    ├── app/            <-- Current Desktop Code (Keep as is)
+   │    ├── lite/           <-- [NEW] MSA Lite specific code
+   │    │    ├── main_lite.py   <-- Entry point for Android
+   │    │    ├── ui/            <-- Mobile-specific screens
+   │    ├── core/           <-- Shared Logic (Database models, Utils)
 ```
 
-**Impact Warning**: Moving `models` and `services` to `core` will break imports in the current Desktop app. This refactoring should be treated as a major maintenance task (1-2 days of work) and done only when active development on the Mobile app begins.
+**Action Item:** We will refactor `src/app/models` and `src/app/utils` into `src/core` so both the Desktop App and the Lite App can import them without duplicating code.
 
-### B. The Database Challenge
+---
 
-The current application uses a local SQLite database file on the computer's hard drive.
+## 3. Build & Deployment Steps
 
-- **Problem**: A mobile app running on a phone will have its own isolated file system and cannot access the computer's `.db` file directly.
-- **Solutions**:
-  1.  **Cloud Database (Recommended)**: Migrate from SQLite to a cloud-hosted PostgreSQL/MySQL database. Both Desktop and Mobile apps connect to this central server.
-  2.  **API Server**: The Desktop app runs a local web server, and the Mobile app communicates with it over Wi-Fi.
-  3.  **Synchronization**: Complex logic to sync two separate SQLite databases when the devices are near each other.
+1.  **Refactor Core Logic:**
 
-## 7. Alternative: BeeWare (Briefcase)
+    - Move `models/*.py` to `src/core/models/`.
+    - Update Desktop imports to point to `src/core`.
 
-If PySide6 deployment proves too difficult due to C-extension compatibility, **BeeWare** is an alternative.
+2.  **Develop Lite UI:**
 
-- Uses `briefcase` to wrap the app.
-- Might require more configuration for complex dependencies.
+    - Create `src/lite/main_lite.py`.
+    - Build the simplified screens (Home, Ticket, Invoice).
 
-## 8. Alternative: Kivy/Flet (Rewrite)
+3.  **Configure Build:**
 
-If the UI is too "desktop-heavy", rewriting the frontend in **Kivy** or **Flet** (Flutter for Python) is a cleaner but more expensive option. Flet is particularly good for creating modern mobile interfaces quickly in Python.
+    - Run `pyside6-deploy` targeting `src/lite/main_lite.py`.
+    - **Permissions:** In `pysidedeploy.spec` and `AndroidManifest.xml`, request:
+      - `CAMERA` (QR Scanning)
+      - `BLUETOOTH` & `BLUETOOTH_ADMIN` (Thermal Printer)
+      - `WRITE_EXTERNAL_STORAGE` (PDF Saving)
 
-## Recommendation
+4.  **Distribution:**
+    - Output: `MSA_Lite_v1.0.apk`
+    - Upload to Google Play Console.
 
-**Current Status**: Deferred.
+## 4. Next Steps
 
-**Action Plan when starting Mobile Dev**:
-
-1.  **Refactor**: Create `src/core` and move shared logic (Models, Services, Utils) there. Update all Desktop app imports.
-2.  **Database Strategy**: Decide if the mobile app needs real-time data (requires Cloud DB) or can work offline (requires Sync).
-3.  **Prototype**: Build a "Hello World" PySide6 Android app to verify the build pipeline before migrating the full MSA codebase.
+1.  **Code Splitting:** Begin moving `models` strings to a shared `core` folder.
+2.  **UI Prototype:** Build the "Home Screen" for MSA Lite using a mobile-first layout.

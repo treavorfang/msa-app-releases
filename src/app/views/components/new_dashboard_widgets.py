@@ -1,8 +1,6 @@
 from PySide6.QtWidgets import QWidget, QLabel, QFrame, QHBoxLayout, QVBoxLayout, QApplication
-from PySide6.QtCore import Qt, QPointF, QEvent
+from PySide6.QtCore import Qt, QPointF, QEvent, QRect, QRectF, QSettings
 from PySide6.QtGui import QColor, QFont, QPainter, QLinearGradient, QPen, QPainterPath, QPalette
-
-from PySide6.QtCore import QSettings
 from config.config import SETTINGS_ORGANIZATION, SETTINGS_APPLICATION, THEME_SETTING_KEY
 
 
@@ -229,6 +227,257 @@ class WaveChart(QWidget):
                 else:
                     painter.setPen(QPen(QColor(96, 165, 250), 2)) # Restore pen ring
                     painter.drawEllipse(p, 4, 4)
+
+class MultiSeriesWaveChart(WaveChart):
+    """Wave chart supporting multiple data series with different colors"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.series = [] # List of dicts: {'data': [], 'color': QColor, 'label': str}
+        
+    def set_series(self, series_list, labels, max_val=None):
+        """
+        series_list: list of dicts {'data': [float], 'color': str|QColor, 'label': str}
+        labels: x-axis labels
+        """
+        self.series = series_list
+        self.labels = labels
+        
+        all_vals = []
+        for s in series_list:
+            all_vals.extend(s['data'])
+            
+        if max_val:
+            self.max_value = max_val
+        elif all_vals:
+            self.max_value = max(all_vals) * 1.2
+            if self.max_value == 0: self.max_value = 1.0
+        
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        dark_mode = self._forced_dark_mode if self._forced_dark_mode is not None else is_dark_theme(self)
+        
+        if dark_mode:
+            grid_color = QColor(255, 255, 255, 20)
+            text_color = QColor(156, 163, 175)
+        else:
+            grid_color = QColor(0, 0, 0, 20)
+            text_color = QColor(75, 85, 99)
+
+        w, h = self.width(), self.height()
+        padding_btm, padding_left, padding_right, padding_top = 30, 50, 20, 20
+        graph_w = w - padding_left - padding_right
+        graph_h = h - padding_top - padding_btm
+        
+        # 1. Grid & Y-Axis
+        painter.setPen(QPen(grid_color, 1))
+        num_grid_lines = 5
+        for i in range(num_grid_lines + 1):
+            y_ratio = i / num_grid_lines
+            y = padding_top + (y_ratio * graph_h)
+            painter.drawLine(padding_left, int(y), w - padding_right, int(y))
+            val = self.max_value * (1.0 - y_ratio)
+            painter.setPen(text_color)
+            painter.drawText(0, int(y) - 10, padding_left - 5, 20, Qt.AlignRight | Qt.AlignVCenter, self.currency_formatter(val))
+            painter.setPen(QPen(grid_color, 1))
+
+        if not self.series: return
+
+        # 2. Draw Series
+        for s_idx, s in enumerate(self.series):
+            data = s['data']
+            color = QColor(s['color'])
+            
+            if len(data) > 1:
+                step_x = graph_w / (len(data) - 1)
+            else:
+                step_x = graph_w
+
+            points = []
+            for i, val in enumerate(data):
+                norm_val = min(1.0, max(0.0, val / self.max_value))
+                px = padding_left + (i * step_x)
+                py = (h - padding_btm) - (norm_val * graph_h)
+                points.append(QPointF(px, py))
+            
+            # Draw Path
+            path = QPainterPath()
+            if points:
+                path.moveTo(points[0])
+                for i in range(len(points) - 1):
+                    p1, p2 = points[i], points[i+1]
+                    ctrl1_x = p1.x() + step_x * 0.5
+                    ctrl2_x = p2.x() - step_x * 0.5
+                    path.cubicTo(ctrl1_x, p1.y(), ctrl2_x, p2.y(), p2.x(), p2.y())
+                
+                # Fill Area
+                fill_path = QPainterPath(path)
+                fill_path.lineTo(points[-1].x(), h - padding_btm)
+                fill_path.lineTo(points[0].x(), h - padding_btm)
+                fill_path.closeSubpath()
+                
+                grad = QLinearGradient(0, padding_top, 0, h - padding_btm)
+                grad_color = QColor(color)
+                grad_color.setAlpha(60)
+                grad.setColorAt(0, grad_color)
+                grad.setColorAt(1, QColor(color.red(), color.green(), color.blue(), 0))
+                
+                painter.setBrush(grad)
+                painter.setPen(Qt.NoPen)
+                painter.drawPath(fill_path)
+                
+                # Stroke
+                painter.setPen(QPen(color, 2, Qt.SolidLine, Qt.RoundCap))
+                painter.setBrush(Qt.NoBrush)
+                painter.drawPath(path)
+                
+                # Dots
+                for i, p in enumerate(points):
+                    painter.setPen(QPen(color, 2))
+                    painter.setBrush(QColor(17, 24, 39) if dark_mode else Qt.white)
+                    painter.drawEllipse(p, 3, 3)
+                    
+                    # Labels (only for the last series or first series to avoid overlap)
+                    if s_idx == 0 and i < len(self.labels):
+                        painter.setPen(text_color)
+                        painter.drawText(int(p.x()) - 30, h - padding_btm + 5, 60, 20, Qt.AlignCenter, self.labels[i])
+
+class BarChartWidget(QWidget):
+    """Vertical Bar Chart for trends"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_points = []
+        self.labels = []
+        self.max_value = 1.0
+        self.color = QColor("#3B82F6")
+        self._forced_dark_mode = None
+        self.formatter = lambda x: str(int(x))
+
+    def set_theme_mode(self, is_dark):
+        self._forced_dark_mode = is_dark
+        self.update()
+
+    def set_data(self, data_points, labels, color="#3B82F6"):
+        self.data_points = data_points
+        self.labels = labels
+        self.color = QColor(color)
+        if data_points:
+            self.max_value = max(data_points) * 1.2
+            if self.max_value == 0: self.max_value = 1.0
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        dark_mode = self._forced_dark_mode if self._forced_dark_mode is not None else is_dark_theme(self)
+        grid_color = QColor(255, 255, 255, 20) if dark_mode else QColor(0, 0, 0, 20)
+        text_color = QColor(156, 163, 175) if dark_mode else QColor(75, 85, 99)
+
+        w, h = self.width(), self.height()
+        padding_btm, padding_left, padding_right, padding_top = 30, 40, 20, 20
+        graph_w = w - padding_left - padding_right
+        graph_h = h - padding_top - padding_btm
+
+        # Grid
+        painter.setPen(QPen(grid_color, 1))
+        for i in range(6):
+            y = padding_top + (i / 5 * graph_h)
+            painter.drawLine(padding_left, int(y), w - padding_right, int(y))
+            val = self.max_value * (1.0 - i/5)
+            painter.setPen(text_color)
+            painter.drawText(0, int(y) - 10, padding_left - 5, 20, Qt.AlignRight | Qt.AlignVCenter, self.formatter(val))
+
+        if not self.data_points: return
+
+        # Bars
+        num_bars = len(self.data_points)
+        bar_gap = 10
+        bar_width = (graph_w - (num_bars + 1) * bar_gap) / num_bars
+        
+        for i, val in enumerate(self.data_points):
+            norm_val = val / self.max_value
+            bw = bar_width
+            bh = norm_val * graph_h
+            bx = padding_left + bar_gap + i * (bar_width + bar_gap)
+            by = (h - padding_btm) - bh
+            
+            rect = QRectF(bx, by, bw, bh)
+            painter.setBrush(self.color)
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(rect, 4, 4)
+            
+            # Value label
+            painter.setPen(text_color)
+            painter.drawText(int(bx), int(by) - 20, int(bw), 20, Qt.AlignCenter, str(int(val)))
+            
+            # X label
+            if i < len(self.labels):
+                painter.drawText(int(bx) - 10, h - padding_btm + 5, int(bw) + 20, 20, Qt.AlignCenter, self.labels[i])
+
+class HorizontalBarChartWidget(QWidget):
+    """Horizontal Bar Chart for rankings"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_points = []
+        self.labels = []
+        self.max_value = 1.0
+        self.color = QColor("#10B981")
+        self._forced_dark_mode = None
+
+    def set_theme_mode(self, is_dark):
+        self._forced_dark_mode = is_dark
+        self.update()
+
+    def set_data(self, data_points, labels, color="#10B981"):
+        self.data_points = data_points
+        self.labels = labels
+        self.color = QColor(color)
+        if data_points:
+            self.max_value = max(data_points) * 1.2
+            if self.max_value == 0: self.max_value = 1.0
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        dark_mode = self._forced_dark_mode if self._forced_dark_mode is not None else is_dark_theme(self)
+        text_color = QColor(156, 163, 175) if dark_mode else QColor(75, 85, 99)
+
+        w, h = self.width(), self.height()
+        padding_left, padding_right, padding_top, padding_btm = 120, 40, 20, 20
+        graph_w = w - padding_left - padding_right
+        graph_h = h - padding_top - padding_btm
+
+        if not self.data_points: return
+
+        num_bars = len(self.data_points)
+        bar_height = min(30, (graph_h / num_bars) * 0.7)
+        bar_gap = (graph_h / num_bars) - bar_height
+        
+        for i, val in enumerate(self.data_points):
+            norm_val = val / self.max_value
+            bw = norm_val * graph_w
+            bh = bar_height
+            bx = padding_left
+            by = padding_top + bar_gap/2 + i * (bar_height + bar_gap)
+            
+            rect = QRectF(bx, by, bw, bh)
+            painter.setBrush(self.color)
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(rect, bh/2, bh/2)
+            
+            # Label (Technician name)
+            painter.setPen(text_color)
+            if i < len(self.labels):
+                painter.drawText(0, int(by), padding_left - 10, int(bh), Qt.AlignRight | Qt.AlignVCenter, self.labels[i])
+            
+            # Value
+            painter.drawText(int(bx + bw) + 5, int(by), 40, int(bh), Qt.AlignLeft | Qt.AlignVCenter, str(int(val)))
 
 class DonutWidget(QWidget):
     def __init__(self, value, color="#3B82F6"):

@@ -543,7 +543,7 @@ class MainWindow(QMainWindow):
             (self.lm.get("MainWindow.reports", "Reports"), "reports", self.reports_action, 'reports:view'),
             (self.lm.get("MainWindow.financial", "Financial"), "financial", self.financial_action, 'financial:view'),
             (self.lm.get("MainWindow.settings", "Settings"), "settings", self.settings_action, 'settings:manage'),
-            (self.lm.get("Users.dashboard_title", "Admin Dashboard"), "admin", self.admin_dashboard_action, 'admin_access'),
+            (self.lm.get("Users.dashboard_title", "Admin Dashboard"), "admin", self.admin_dashboard_action, 'admin:access'),
         ]
         
         # Filter items based on permissions

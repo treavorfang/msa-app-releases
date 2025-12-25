@@ -27,7 +27,7 @@ class ModernSupplierListTab(QWidget):
         self.lm = language_manager
         
         # Search timer
-        self.search_timer = QTimer()
+        self.search_timer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.setInterval(300)
         self.search_timer.timeout.connect(self._perform_search)
@@ -42,6 +42,12 @@ class ModernSupplierListTab(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
         
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
+
         # Header with title and view switcher
         header_layout = self._create_header()
         layout.addLayout(header_layout)
@@ -59,6 +65,10 @@ class ModernSupplierListTab(QWidget):
         self.summary_layout.addWidget(self.total_suppliers_card)
         self.summary_layout.addWidget(self.active_suppliers_card)
         self.summary_layout.addWidget(self.total_owed_card)
+        
+        # Apply initial theme
+
+        
         self.summary_layout.addStretch()
         
         # Filters and search
@@ -80,6 +90,9 @@ class ModernSupplierListTab(QWidget):
         self.view_stack.addWidget(self.list_view)
         
         layout.addWidget(self.view_stack, 1)
+
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
     
     def _create_header(self):
         """Create header with title and view switcher"""
@@ -503,6 +516,8 @@ class ModernSupplierListTab(QWidget):
         # Store supplier data
         card.supplier_id = supplier.id
         card.supplier_dto = supplier
+        card.balance_color = balance_color # Store for theme updates
+        card.balance_text = self._format_balance(balance)
         
         # Custom event handling
         def mousePressEvent(event):
@@ -530,12 +545,15 @@ class ModernSupplierListTab(QWidget):
         header = QHBoxLayout()
         
         name_label = QLabel(supplier.name)
+        name_label.setObjectName("nameLabel")
         name_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         header.addWidget(name_label)
         
         header.addStretch()
         
-        balance_label = QLabel(self._format_balance(balance))
+        balance_label = QLabel(card.balance_text)
+        balance_label.setObjectName("balanceLabel")
+        # Balance color is dynamic/specific so we keep it inline mostly or update it
         balance_label.setStyleSheet(f"color: {balance_color}; font-weight: bold; font-size: 14px;")
         header.addWidget(balance_label)
         
@@ -544,17 +562,20 @@ class ModernSupplierListTab(QWidget):
         # Contact info
         if supplier.contact_person:
             contact_label = QLabel(f"👤 {supplier.contact_person}")
-            contact_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            contact_label.setObjectName("contactLabel")
+            contact_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(contact_label)
         
         if supplier.phone:
             phone_label = QLabel(f"📞 {supplier.phone}")
-            phone_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            phone_label.setObjectName("contactLabel")
+            phone_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(phone_label)
         
         if supplier.email:
             email_label = QLabel(f"📧 {supplier.email}")
-            email_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            email_label.setObjectName("contactLabel")
+            email_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(email_label)
         
         layout.addStretch()
@@ -563,20 +584,22 @@ class ModernSupplierListTab(QWidget):
         footer = QHBoxLayout()
         
         orders_label = QLabel(f"📦 {balance_info['total_orders']} {self.lm.get('Inventory.orders', 'Orders')}")
-        orders_label.setStyleSheet("color: #6B7280; font-size: 11px;")
+        orders_label.setObjectName("metaLabel")
+        orders_label.setStyleSheet("font-size: 11px;")
         footer.addWidget(orders_label)
         
         footer.addStretch()
         
         if supplier.payment_terms:
             terms_label = QLabel(f"💳 {supplier.payment_terms}")
-            terms_label.setStyleSheet("color: #6B7280; font-size: 11px;")
+            terms_label.setObjectName("metaLabel")
+            terms_label.setStyleSheet("font-size: 11px;")
             footer.addWidget(terms_label)
         
         layout.addLayout(footer)
         
         # Initial style
-        self._update_card_selection_style(card, supplier.id in self.selected_suppliers)
+        self._update_card_style(card, supplier.id in self.selected_suppliers)
         
         return card
     
@@ -617,6 +640,25 @@ class ModernSupplierListTab(QWidget):
 
     def _on_search_changed(self, text):
         self.search_timer.start()
+        
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_cards_style()
+        self._update_other_ui_elements()
+
+    def _update_other_ui_elements(self):
+        """Update other UI elements like buttons that might need specific themed styling"""
+        is_dark = self.current_theme == 'dark'
+        # Example: Update view switcher toggles if needed, currently they use transparent/blue which works ok
+        
+    def _update_all_cards_style(self):
+        """Update style for all cards"""
+        for i in range(self.cards_layout.count()):
+            item = self.cards_layout.itemAt(i)
+            if item and item.widget():
+                card = item.widget()
+                self._update_card_style(card, card.supplier_id in self.selected_suppliers)
 
     def _perform_search(self):
         self._load_data()
@@ -630,10 +672,10 @@ class ModernSupplierListTab(QWidget):
         """Handle card click (toggle selection)"""
         if supplier.id in self.selected_suppliers:
             self.selected_suppliers.remove(supplier.id)
-            self._update_card_selection_style(card, False)
+            self._update_card_style(card, False)
         else:
             self.selected_suppliers.append(supplier.id)
-            self._update_card_selection_style(card, True)
+            self._update_card_style(card, True)
             
     def _on_card_double_clicked(self, supplier):
         """Handle card double click (open details)"""
@@ -641,30 +683,51 @@ class ModernSupplierListTab(QWidget):
         dialog.exec()
         self._load_data()  # Refresh after dialog closes
         
-    def _update_card_selection_style(self, card, is_selected):
-        """Update card style based on selection"""
-        if is_selected:
-            card.setStyleSheet("""
-                QFrame#supplierCard {
-                    background-color: #374151;
-                    border: 2px solid #3B82F6;
-                    border-radius: 8px;
-                    padding: 12px;
-                }
-            """)
-        else:
-            card.setStyleSheet("""
-                QFrame#supplierCard {
-                    background-color: #1F2937;
-                    border: 1px solid #374151;
-                    border-radius: 8px;
-                    padding: 12px;
-                }
-                QFrame#supplierCard:hover {
-                    border-color: #3B82F6;
-                    background-color: #374151;
-                }
-            """)
+    def _update_card_style(self, card, is_selected):
+        """Update card style based on selection and theme"""
+        is_dark = self.current_theme == 'dark'
+        
+        if is_dark:
+            bg_color = "#374151" if is_selected else "#1F2937"
+            border_color = "#3B82F6" if is_selected else "#374151"
+            hover_bg = "#374151"
+            hover_border = "#3B82F6"
+            text_color = "white"
+            subtext_color = "#9CA3AF" # Gray 400
+            meta_color = "#6B7280" # Gray 500
+        else: # Light
+            bg_color = "#EFF6FF" if is_selected else "#FFFFFF" # Blue 50 or White
+            border_color = "#3B82F6" if is_selected else "#E5E7EB" # Blue 500 or Gray 200
+            hover_bg = "#F9FAFB" # Gray 50
+            hover_border = "#3B82F6"
+            text_color = "#111827" # Gray 900
+            subtext_color = "#4B5563" # Gray 600
+            meta_color = "#6B7280" # Gray 500
+
+        card.setStyleSheet(f"""
+            QFrame#supplierCard {{
+                background-color: {bg_color};
+                border: {'2px' if is_selected else '1px'} solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#supplierCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg if not is_selected else bg_color};
+            }}
+            QLabel#nameLabel {{
+                color: {text_color};
+            }}
+            QLabel#contactLabel {{
+                color: {subtext_color};
+            }}
+            QLabel#metaLabel {{
+                color: {meta_color};
+            }}
+            QLabel#balanceLabel {{
+                color: {card.balance_color}; /* Preserve dynamic balance color */
+            }}
+        """)
 
     def _on_background_clicked(self, event):
         """Handle click on background to deselect all"""
@@ -679,7 +742,7 @@ class ModernSupplierListTab(QWidget):
         for i in range(self.cards_layout.count()):
             item = self.cards_layout.itemAt(i)
             if item and item.widget():
-                self._update_card_selection_style(item.widget(), False)
+                self._update_card_style(item.widget(), False)
     
     def _on_table_double_click(self, index):
         """Handle table double click"""

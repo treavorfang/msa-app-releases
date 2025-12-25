@@ -213,9 +213,10 @@ class PartService(IPartService):
             
         return PartDTO.from_model(part) if part else None
     
-    def search_parts(self, query: str, limit: int = 100) -> List[PartDTO]:
-        """Search parts by name, SKU, or barcode."""
-        parts = self._repository.search_parts(query, limit)
+    def search_parts(self, query: str = "", category_id: Optional[int] = None, 
+                     supplier_id: Optional[int] = None, limit: int = 100, offset: int = 0) -> List[PartDTO]:
+        """Search parts by name, SKU, or barcode with optional filters."""
+        parts = self._repository.search_parts(query, category_id, supplier_id, limit, offset)
         return [PartDTO.from_model(p) for p in parts]
     
     def get_parts_by_category(self, category: str) -> List[PartDTO]:

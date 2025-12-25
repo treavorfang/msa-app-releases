@@ -306,6 +306,10 @@ class TicketService(ITicketService):
         """Get status change history for a ticket."""
         return self.status_history_repository.get_history_for_ticket(ticket_id, limit)
         
+    def get_work_logs(self, ticket_id: int):
+        """Get all work logs for a specific ticket."""
+        return self.work_log_repository.get_for_ticket(ticket_id)
+        
     def get_tickets_by_technician(self, technician_id: int, limit: int = 50) -> List[TicketDTO]:
         """Get tickets assigned to a specific technician."""
         # Use repository's list functionality with filter

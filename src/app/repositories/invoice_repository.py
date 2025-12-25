@@ -8,7 +8,11 @@ from typing import Optional, List
 from peewee import fn
 from models.invoice import Invoice
 from models.device import Device
+from models.customer import Customer
 
+
+from models.payment import Payment
+from peewee import prefetch
 
 class InvoiceRepository:
     """Repository for Invoice data access operations."""
@@ -44,12 +48,24 @@ class InvoiceRepository:
         except Invoice.DoesNotExist:
             return False
     
-    def list_all(self, branch_id: Optional[int] = None) -> List[Invoice]:
-        """Get all invoices, optionally filtered by branch."""
-        query = Invoice.select()
-        if branch_id:
-            query = query.where(Invoice.branch == branch_id)
-        return list(query)
+    def list_all(self, limit: int = 20, offset: int = 0, search: Optional[str] = None, customer_id: Optional[int] = None) -> List[Invoice]:
+        """Get all invoices with pagination and filters."""
+        query = Invoice.select().order_by(Invoice.created_at.desc())
+        
+        if customer_id:
+            # Join through Device -> Customer
+            query = query.join(Device).join(Customer).where(Customer.id == customer_id)
+            
+        if search:
+            # Search by number or customer name
+            query = query.join(Device).join(Customer).where(
+                (Invoice.invoice_number.contains(search)) | 
+                (Customer.name.contains(search))
+            )
+            
+        # Execute query with limit/offset and prefetch payments
+        final_query = query.limit(limit).offset(offset)
+        return list(prefetch(final_query, Payment))
     
     def list_for_customer(self, customer_id: int) -> List[Invoice]:
         """Get all invoices for a specific customer."""

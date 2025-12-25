@@ -124,6 +124,30 @@ def run_database_migrations():
         # sys.exit(1)
 
 
+def start_mobile_server():
+    """
+    Start the background API server for mobile access.
+    
+    Returns:
+        ServerWorker: The worker thread if started, None otherwise
+    """
+    try:
+        from api.worker import ServerWorker
+        from config.flags import FLAGS
+        
+        if not FLAGS.enable_mobile_server:
+            print("📱 Mobile server is disabled by config.")
+            return None
+            
+        print(f"📱 Starting Mobile API Server on port {FLAGS.mobile_server_port}...")
+        worker = ServerWorker(port=FLAGS.mobile_server_port)
+        worker.start()
+        return worker
+    except Exception as e:
+        print(f"⚠️  Failed to start Mobile API Server: {e}")
+        return None
+
+
 def main(argv):
     """
     Main application entry point.
@@ -189,15 +213,29 @@ def main(argv):
     # Setup database and migrations
     run_database_migrations()
     
-    # Set Qt style for consistent theming
+    # Set Qt style for consistent theming (Matches backup v1.0.4)
     QApplication.setStyle('Fusion')
+
+    # Start mobile API server
+    mobile_server = start_mobile_server()
     
     # Initialize and run the application
     # Note: MSA creates its own QApplication instance
     from core.app import MSA
     auth_app = MSA()
     
-    return auth_app.app.exec()
+    # Store reference to keep it alive
+    if mobile_server:
+        auth_app.mobile_server = mobile_server
+    
+    try:
+        result = auth_app.app.exec()
+    finally:
+        # Stop mobile server on exit
+        if mobile_server:
+            mobile_server.stop()
+            
+    return result
 
 
 # Register cleanup handler
@@ -243,25 +281,6 @@ if __name__ == "__main__":
             
             print(f"Platform: {sys.platform}")
 
-            # --- Fix for Matplotlib/Logging Crash ---
-            # Matplotlib uses the 'logging' module which might grab reference to original None streams.
-            # We must re-configure logging to use our opened file streams.
-            import logging
-            
-            # Reset handlers
-            root_logger = logging.getLogger()
-            for handler in root_logger.handlers[:]:
-                root_logger.removeHandler(handler)
-                
-            # Create basic configuration that writes to our file stream
-            logging.basicConfig(
-                stream=sys.stdout, 
-                level=logging.WARNING, # Only show warnings/errors from libraries
-                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
-            
-            # Explicitly silence matplotlib categorical noise (Info level)
-            logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
         sys.exit(app.run(main))
         

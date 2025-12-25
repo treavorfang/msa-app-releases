@@ -50,6 +50,12 @@ class CreditNoteListTab(QWidget):
         # Header with title and view switcher
         header_layout = self._create_header()
         layout.addLayout(header_layout)
+
+        # Theme handling
+        self.current_theme = 'dark'
+        if hasattr(self.container, 'theme_controller'):
+             self.container.theme_controller.theme_changed.connect(self._on_theme_changed)
+             self.current_theme = self.container.theme_controller.current_theme
         
         # Summary Cards
         summary_layout = self._create_summary_cards()
@@ -74,6 +80,9 @@ class CreditNoteListTab(QWidget):
         self.view_stack.addWidget(self.list_view)
         
         layout.addWidget(self.view_stack, 1)
+
+        # Apply initial theme
+        self._on_theme_changed(self.current_theme)
     
     def _create_header(self):
         """Create header with title and view switcher"""
@@ -442,20 +451,7 @@ class CreditNoteListTab(QWidget):
         card.setMaximumHeight(240)
         
         status_color = self._get_status_color(credit_note.status)
-        
-        # Style card
-        card.setStyleSheet(f"""
-            QFrame#creditNoteCard {{
-                background-color: #1F2937;
-                border: 1px solid #374151;
-                border-radius: 8px;
-                padding: 12px;
-            }}
-            QFrame#creditNoteCard:hover {{
-                border-color: {status_color};
-                background-color: #374151;
-            }}
-        """)
+        card.status_color = status_color
         
         # Store credit note data
         card.credit_note_id = credit_note.id
@@ -469,6 +465,7 @@ class CreditNoteListTab(QWidget):
         header = QHBoxLayout()
         
         cn_label = QLabel(credit_note.credit_note_number)
+        cn_label.setObjectName("cnLabel")
         cn_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         header.addWidget(cn_label)
         
@@ -490,19 +487,22 @@ class CreditNoteListTab(QWidget):
         # Supplier
         if credit_note.supplier:
             supplier_label = QLabel(f"🏢 {credit_note.supplier.name}")
-            supplier_label.setStyleSheet("color: #9CA3AF; font-size: 13px;")
+            supplier_label.setObjectName("metaLabel")
+            supplier_label.setStyleSheet("font-size: 13px;")
             layout.addWidget(supplier_label)
         
         # Return number
         if credit_note.purchase_return:
             return_label = QLabel(f"↩️ {self.lm.get('CreditNotes.return', 'Return')}: {credit_note.purchase_return.return_number}")
-            return_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+            return_label.setObjectName("metaLabel")
+            return_label.setStyleSheet("font-size: 12px;")
             layout.addWidget(return_label)
         
         # Issue date
         issue_date = credit_note.issue_date.strftime("%Y-%m-%d") if credit_note.issue_date else "N/A"
         date_label = QLabel(f"📅 {issue_date}")
-        date_label.setStyleSheet("color: #9CA3AF; font-size: 12px;")
+        date_label.setObjectName("metaLabel")
+        date_label.setStyleSheet("font-size: 12px;")
         layout.addWidget(date_label)
         
         layout.addStretch()
@@ -522,6 +522,9 @@ class CreditNoteListTab(QWidget):
         footer.addWidget(remaining_label)
         
         layout.addLayout(footer)
+        
+        # Initial style
+        self._update_card_style(card)
         
         return card
     
@@ -601,36 +604,63 @@ class CreditNoteListTab(QWidget):
             QMessageBox.warning(self, self.lm.get("CreditNotes.no_selection", "No Selection"), self.lm.get("CreditNotes.select_credit_to_apply", "Please select a credit note to apply."))
             return
         
-        row = selected_rows[0].row()
-        credit_note_id = self.credit_notes_table.item(row, 1).data(Qt.UserRole)
+    def _update_card_style(self, card):
+        """Update card style based on theme"""
+        status_color = getattr(card, 'status_color', '#3B82F6')
+        is_dark = self.current_theme == 'dark'
         
-        # Get credit note
-        credit_note = self.credit_note_service.get_credit_note(credit_note_id)
-        if not credit_note:
-            QMessageBox.warning(self, self.lm.get("CreditNotes.error", "Error"), self.lm.get("CreditNotes.credit_note_not_found", "Credit note not found."))
-            return
+        if is_dark:
+            bg_color = "#1F2937"
+            border_color = "#374151"
+            hover_bg = "#374151"
+            hover_border = status_color
+            text_color = "white"
+            meta_color = "#9CA3AF" # Gray 400
+        else: # Light
+            bg_color = "#FFFFFF"
+            border_color = "#E5E7EB"
+            hover_bg = "#F9FAFB" # Gray 50
+            hover_border = status_color
+            text_color = "#111827" # Gray 900
+            meta_color = "#4B5563" # Gray 600
+
+        card.setStyleSheet(f"""
+            QFrame#creditNoteCard {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+            QFrame#creditNoteCard:hover {{
+                border-color: {hover_border};
+                background-color: {hover_bg};
+            }}
+            QLabel#cnLabel {{
+                color: {text_color};
+            }}
+            QLabel#metaLabel {{
+                color: {meta_color};
+            }}
+        """)
+
+    def _on_theme_changed(self, theme_name):
+        """Handle theme changes"""
+        self.current_theme = theme_name
+        self._update_all_cards_style()
         
-        # Check if credit is available
-        if float(credit_note.remaining_credit) <= 0:
-            QMessageBox.warning(self, self.lm.get("CreditNotes.no_credit_available", "No Credit Available"), self.lm.get("CreditNotes.no_remaining_credit", "This credit note has no remaining credit to apply."))
-            return
+    def _update_all_cards_style(self):
+        """Update style for all cards"""
+        # Ensure cards_layout exists before iterating
+        if not hasattr(self, 'cards_layout'):
+            return 
+            
+        for i in range(self.cards_layout.count()):
+            item = self.cards_layout.itemAt(i)
+            if item and item.widget():
+                card = item.widget()
+                self._update_card_style(card)
         
-        if credit_note.status == CreditNoteStatus.EXPIRED:
-            QMessageBox.warning(self, self.lm.get("CreditNotes.expired_credit", "Expired Credit"), self.lm.get("CreditNotes.expired_cannot_apply", "This credit note has expired and cannot be applied."))
-            return
-        
-        # Open apply credit dialog
-        try:
-            from views.inventory.financial.apply_credit_dialog import ApplyCreditDialog
-            dialog = ApplyCreditDialog(self.container, credit_note, user=self.user, parent=self)
-            if dialog.exec():
-                self._load_credit_notes()  # Refresh after applying credit
-                self.data_changed.emit()   # Notify parent to refresh other tabs
-        except Exception as e:
-            import traceback
-            error_msg = f"Error opening Apply Credit dialog:\n{str(e)}\n\n{traceback.format_exc()}"
-            print(error_msg)
-            QMessageBox.critical(self, self.lm.get("CreditNotes.error", "Error"), error_msg)
+
 
     def showEvent(self, event):
         """Lazy load data when tab is shown"""

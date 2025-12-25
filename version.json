@@ -1,16 +1,16 @@
 {
-  "version": "1.0.4",
-  "full_version": "1.0.4+build.666.d5109b5.dirty",
+  "version": "1.0.5",
+  "full_version": "1.0.5+build.926.f7e9243.dirty",
   "major": 1,
   "minor": 0,
-  "patch": 4,
-  "build": 666,
+  "patch": 5,
+  "build": 926,
   "git": {
-    "commit": "d5109b5",
+    "commit": "f7e9243",
     "branch": "main",
-    "tag": "v1.0.3",
+    "tag": "v1.0.4",
     "dirty": true
   },
-  "build_date": "2025-12-20T21:30:51.333803",
-  "build_timestamp": 1766242851
+  "build_date": "2025-12-25T16:45:39.569719",
+  "build_timestamp": 1766657739
 }

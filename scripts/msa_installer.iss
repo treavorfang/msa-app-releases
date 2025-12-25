@@ -1,6 +1,6 @@
 ; Script generated for Inno Setup
 #define MyAppName "MSA"
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.4"
 #define MyAppPublisher "Studio Tai"
 #define MyAppURL "https://studiotai.com"
 #define MyAppExeName "MSA.exe"

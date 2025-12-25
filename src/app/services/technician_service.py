@@ -20,7 +20,59 @@ class TechnicianService(ITechnicianService):
         self.audit_service = audit_service
         
     def create_technician(self, technician_data: dict, current_user=None, ip_address=None) -> TechnicianDTO:
-        """Create a new technician profile."""
+        """Create a new technician profile and linked User account."""
+        from models.user import User
+        from models.role import Role
+        from utils.security.password_utils import hash_password
+
+        # 1. Prepare User Data
+        email = technician_data.get('email')
+        full_name = technician_data.get('full_name', 'Unknown')
+        password_plain = technician_data.get('password') # Plain text from form
+        
+        # Generate username if not provided (from email or name)
+        username = email.split('@')[0] if email else full_name.lower().replace(" ", ".")
+        
+        # Check if user already exists
+        existing_user = None
+        if email:
+            existing_user = User.get_or_none(User.email == email)
+        if not existing_user and username:
+            existing_user = User.get_or_none(User.username == username)
+            
+        linked_user = existing_user
+        
+        if not linked_user:
+            # Create NEW User
+            tech_role = Role.get_or_none(Role.name == "Technician")
+            
+            # Hash password if provided, else default?
+            # Note: Tech model previously stored hash or plain? 
+            # Controller usually sends what it got. If it's a new tech form, it's likely plain.
+            # We must hash it for User table.
+            
+            pwd_hash = hash_password(password_plain) if password_plain else hash_password("ChangeMe123!")
+            
+            try:
+                linked_user = User.create(
+                    username=username,
+                    full_name=full_name,
+                    email=email,
+                    password_hash=pwd_hash,
+                    role=tech_role,
+                    is_active=technician_data.get('is_active', True)
+                )
+            except Exception as e:
+                # Handle username collision by appending random?
+                # For now let it bubble or fail if strict
+                print(f"Failed to create user for tech: {e}")
+                raise e
+        
+        # 2. Link User to Tech Data
+        technician_data['user'] = linked_user
+        # We can also sync fields to ensure consistency
+        
+        # 3. Create Tech
         technician = self.repository.create(technician_data)
         dto = TechnicianDTO.from_model(technician)
         
@@ -44,12 +96,41 @@ class TechnicianService(ITechnicianService):
         return TechnicianDTO.from_model(tech) if tech else None
         
     def update_technician(self, technician_id: int, update_data: dict, current_user=None, ip_address=None) -> Optional[TechnicianDTO]:
-        """Update a technician's profile."""
+        """Update a technician's profile and sync to User."""
+        from utils.security.password_utils import hash_password
+
         old_tech = self.repository.get(technician_id)
         if not old_tech:
             return None
             
         old_dto = TechnicianDTO.from_model(old_tech)
+        
+        # 1. Sync User Fields
+        if old_tech.user:
+            user = old_tech.user
+            user_changed = False
+            
+            if 'full_name' in update_data:
+                user.full_name = update_data['full_name']
+                user_changed = True
+            
+            if 'email' in update_data and update_data['email'] != user.email:
+                user.email = update_data['email']
+                user_changed = True
+                
+            if 'is_active' in update_data:
+                user.is_active = update_data['is_active']
+                user_changed = True
+                
+            if 'password' in update_data and update_data['password']:
+                # Assume plaintext if being updated
+                user.password_hash = hash_password(update_data['password'])
+                user_changed = True
+                
+            if user_changed:
+                user.save()
+        
+        # 2. Update Tech Fields
         technician = self.repository.update(technician_id, update_data)
         
         if technician:
@@ -66,13 +147,18 @@ class TechnicianService(ITechnicianService):
         return None
         
     def delete_technician(self, technician_id: int, current_user=None, ip_address=None) -> bool:
-        """Deactivate a technician (soft delete)."""
+        """Deactivate a technician and linked User (soft delete)."""
         tech = self.repository.get(technician_id)
         if not tech:
             return False
             
         dto = TechnicianDTO.from_model(tech)
-        # Using deactivate typically
+        
+        # 1. Deactivate User
+        if tech.user:
+            tech.user.deactivate()
+            
+        # 2. Deactivate Tech
         success = self.repository.deactivate(technician_id)
         
         if success:

@@ -95,6 +95,19 @@ flags.DEFINE_boolean(
     'Enable EventBus for domain events (disable to use Qt signals)'
 )
 
+# Mobile Server configuration
+flags.DEFINE_boolean(
+    'enable_mobile_server',
+    True,
+    'Enable the local network mobile API server'
+)
+
+flags.DEFINE_integer(
+    'mobile_server_port',
+    8000,
+    'Port for the mobile API server'
+)
+
 # Performance configuration
 flags.DEFINE_integer(
     'cache_size_mb',
@@ -130,6 +143,8 @@ def get_config():
         'enable_analytics': FLAGS.enable_analytics,
         'enable_reports': FLAGS.enable_reports,
         'enable_eventbus': FLAGS.enable_eventbus,
+        'enable_mobile_server': FLAGS.enable_mobile_server,
+        'mobile_server_port': FLAGS.mobile_server_port,
         'cache_size_mb': FLAGS.cache_size_mb,
         'max_workers': FLAGS.max_workers,
     }

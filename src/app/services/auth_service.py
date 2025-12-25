@@ -91,9 +91,14 @@ class AuthService(IAuthService):
         if not username or len(username.strip()) < 3:
             return False, "Username must be at least 3 characters"
             
-        credentials_valid, validation_msg = InputValidator.validate_email_and_password(email, password)
-        if not credentials_valid:
-            return False, validation_msg
+        # Use local validation for registration
+        email_valid, email_msg = InputValidator.validate_email(email)
+        if not email_valid:
+            return False, email_msg
+            
+        password_valid, password_msg = InputValidator.validate_password(password, is_local=True)
+        if not password_valid:
+            return False, password_msg
 
         if self.user_repository.username_exists(username):
             return False, "Username already exists"
@@ -169,6 +174,11 @@ class AuthService(IAuthService):
             if old_password == new_password:
                 return False, "New password must be different"
                 
+            # Validate new password
+            is_valid, msg = InputValidator.validate_password(new_password, is_local=True)
+            if not is_valid:
+                return False, msg
+                
             user.password_hash = hash_password(new_password)
             user.updated_at = datetime.now()
             user.save()
@@ -195,6 +205,11 @@ class AuthService(IAuthService):
             user = self.user_repository.get_by_id(user_id)
             if not user:
                 return False, "User not found"
+                
+            # Validate new password
+            is_valid, msg = InputValidator.validate_password(new_password, is_local=True)
+            if not is_valid:
+                return False, msg
                 
             user.password_hash = hash_password(new_password)
             user.updated_at = datetime.now()
