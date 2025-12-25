@@ -150,18 +150,6 @@ Designed specifically for mobile repair shops with features that matter to your 
 
 ---
 
-## 🛠️ Technical Highlights
-
-- **Framework**: PySide6 (Qt for Python)
-- **Database**: SQLAlchemy with SQLite
-- **Architecture**: Clean MVC pattern with repository layer
-- **Mobile UI**: Modern responsive web interface
-- **API**: FastAPI backend for mobile access
-- **Security**: Cython-compiled sensitive modules
-- **Printing**: WeasyPrint for professional invoices and receipts
-
----
-
 ## 📖 Getting Started
 
 ### First Launch
