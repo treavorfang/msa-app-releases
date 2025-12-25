@@ -66,22 +66,40 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ### Latest Release: v1.0.7
 
-**[Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/latest)**
+- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.7/MSA-Installer.dmg)
+- 🪟 **Windows**: [Download MSA_Setup_v1.0.7.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.7/MSA_Setup_v1.0.7.exe)
 
 ### Installation Steps
 
-1. **Download** the DMG file from the latest release
-2. **Open** the downloaded MSA-Installer.dmg
-3. **Drag** MSA.app to your Applications folder
-4. **Launch** MSA from Applications
+#### macOS
+
+1. **Download** the DMG file.
+2. **Open** `MSA-Installer.dmg`.
+3. **Drag** MSA to Applications.
+4. **Launch** from Applications.
+
+#### Windows
+
+1. **Download** the EXE file.
+2. **Run** `MSA_Setup_v1.0.7.exe`.
+3. **Follow** the setup wizard.
+4. **Launch** from Start Menu or Desktop.
 
 ### System Requirements
 
-- **Operating System**: macOS 10.13 (High Sierra) or later
+#### macOS
+
+- **OS**: macOS 10.13 (High Sierra) or later
 - **Processor**: Apple Silicon (M1/M2/M3) or Intel
-- **Memory**: 4GB RAM minimum, 8GB recommended
-- **Storage**: 500MB available space
-- **Display**: 1280x800 minimum resolution
+- **Memory**: 4GB RAM minimum
+- **Display**: 1280x800 minimum
+
+#### Windows
+
+- **OS**: Windows 10 or Windows 11
+- **Processor**: 64-bit Intel/AMD
+- **Memory**: 4GB RAM minimum
+- **Disk**: 500MB available space
 
 ---
 
