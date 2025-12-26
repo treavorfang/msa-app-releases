@@ -64,10 +64,10 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ## 📥 Download & Installation
 
-### Latest Release: v1.0.7
+### Latest Release: v1.0.8
 
-- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.7/MSA-Installer.dmg)
-- 🪟 **Windows**: [Download MSA_Setup_v1.0.7.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.7/MSA_Setup_v1.0.7.exe)
+- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.8/MSA-Installer.dmg)
+- 🪟 **Windows**: [Download MSA_Setup_v1.0.8.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.8/MSA_Setup_v1.0.8.exe)
 
 ### Installation Steps
 
@@ -103,22 +103,23 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ---
 
-## 🚀 What's New in v1.0.7
+## 🚀 What's New in v1.0.8
 
 ### Added
 
-- **Technician Management Improvements**: Added conditional "Old Password" requirement for technician self-updates while maintaining simple resets for admins.
-- **Mobile Enhancement**: Added "Save Changes" button to Ticket Repair tab for better user control.
-- **Admin Sync**: Automatic dashboard refresh when technicians are created or updated.
+- **Smart Device Input**: "Add Device" form now intelligently formats IMEIs (numeric) and capitalizes Serial Numbers automatically.
+- **Financial Action Menu**: Replaced swipe gestures with a reliable "Three Dots" menu for managing income and expenses on mobile.
+- **Client Ticket Filters**: Added instant filters (Active, Finished, Returned) to the Client Profile ticket list.
 
 ### Changed
 
-- **UI Refinement**: Significantly improved "Edit Technician" dialog layout (increased size, stacked password fields) for better readability.
-- **Password Policy**: Enforced 6-character minimum for technician passwords.
+- **Premium Mobile UI**: Complete visual overhaul with styled Language Selector, themed financial cards, and refined typography.
+- **Performance Access**: "Performance" button is now visible to Technicians but hidden for Staff/Admins on mobile profile.
 
 ### Fixed
 
-- **Mobile Cost Sync**: Resolved issue where `actual_cost` was not automatically recalculating when adding/removing parts on mobile.
+- **Printing Accuracy**: Fixed missing IMEI, Color, and Condition fields on printed thermal tickets.
+- **Navigation Stability**: Fixed flickering issues and optimized the "Create" FAB visibility logic.
 
 ---
 
@@ -209,6 +210,6 @@ MSA is proprietary software. All rights reserved.
 
 MSA is developed with ❤️ for mobile repair shop owners who want to streamline their business operations and focus on what matters most - serving their customers.
 
-**Version**: 1.0.7  
-**Build**: 951  
-**Release Date**: December 25, 2025
+**Version**: 1.0.8  
+**Build**: 993  
+**Release Date**: December 26, 2025
