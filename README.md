@@ -64,24 +64,24 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ## 📥 Download & Installation
 
-### Latest Release: v1.0.9
+### Latest Release: v1.1.0
 
-- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.9/MSA-Installer.dmg)
-- 🪟 **Windows**: [Download MSA_Setup_v1.0.9.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.9/MSA_Setup_v1.0.9.exe)
+- 🍎 **macOS**: [Download MSA-Installer.zip](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.0/MSA-Installer.zip)
+- 🪟 **Windows**: [Download MSA_Setup_v1.1.0.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.0/MSA_Setup_v1.1.0.exe)
 
 ### Installation Steps
 
 #### macOS
 
 1. **Download** the DMG file.
-2. **Open** `MSA-Installer.dmg`.
+2. **Open** `MSA-Installer.zip`.
 3. **Drag** MSA to Applications.
 4. **Launch** from Applications.
 
 #### Windows
 
 1. **Download** the EXE file.
-2. **Run** `MSA_Setup_v1.0.9.exe`.
+2. **Run** `MSA_Setup_v1.1.0.exe`.
 3. **Follow** the setup wizard.
 4. **Launch** from Start Menu or Desktop.
 
@@ -103,13 +103,13 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ---
 
-## 🚀 What's New in v1.0.9
+## 🚀 What's New in v1.1.0
 
 ### Added
 
-- **Smart Device Input**: "Add Device" form now intelligently formats IMEIs (numeric) and capitalizes Serial Numbers automatically.
-- **Financial Action Menu**: Replaced swipe gestures with a reliable "Three Dots" menu for managing income and expenses on mobile.
-- **Client Ticket Filters**: Added instant filters (Active, Finished, Returned) to the Client Profile ticket list.
+- **Urgent Ticket Priority**: Tickets due today or within 24 hours now automatically float to the top of the Active list.
+- **Financial Indicators**: Added clear Credit/Debit indicators on the Client Profile.
+- **Unpaid Alert**: Added red border visual cue for unpaid tickets.
 
 ### Changed
 
@@ -210,6 +210,6 @@ MSA is proprietary software. All rights reserved.
 
 MSA is developed with ❤️ for mobile repair shop owners who want to streamline their business operations and focus on what matters most - serving their customers.
 
-**Version**: 1.0.9  
-**Build**: 1015  
+**Version**: 1.1.0  
+**Build**: 1038  
 **Release Date**: December 27, 2025
