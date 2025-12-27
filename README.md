@@ -64,10 +64,10 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ## 📥 Download & Installation
 
-### Latest Release: v1.0.8
+### Latest Release: v1.0.9
 
-- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.8/MSA-Installer.dmg)
-- 🪟 **Windows**: [Download MSA_Setup_v1.0.8.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.8/MSA_Setup_v1.0.8.exe)
+- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.9/MSA-Installer.dmg)
+- 🪟 **Windows**: [Download MSA_Setup_v1.0.9.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.0.9/MSA_Setup_v1.0.9.exe)
 
 ### Installation Steps
 
@@ -81,7 +81,7 @@ MSA is a comprehensive business management solution designed specifically for mo
 #### Windows
 
 1. **Download** the EXE file.
-2. **Run** `MSA_Setup_v1.0.7.exe`.
+2. **Run** `MSA_Setup_v1.0.9.exe`.
 3. **Follow** the setup wizard.
 4. **Launch** from Start Menu or Desktop.
 
@@ -103,7 +103,7 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ---
 
-## 🚀 What's New in v1.0.8
+## 🚀 What's New in v1.0.9
 
 ### Added
 
@@ -210,6 +210,6 @@ MSA is proprietary software. All rights reserved.
 
 MSA is developed with ❤️ for mobile repair shop owners who want to streamline their business operations and focus on what matters most - serving their customers.
 
-**Version**: 1.0.8  
-**Build**: 993  
-**Release Date**: December 26, 2025
+**Version**: 1.0.9  
+**Build**: 1015  
+**Release Date**: December 27, 2025
