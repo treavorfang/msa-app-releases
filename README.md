@@ -64,24 +64,24 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ## 📥 Download & Installation
 
-### Latest Release: v1.1.0
+### Latest Release: v1.1.2
 
-- 🍎 **macOS**: [Download MSA-Installer.zip](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.0/MSA-Installer.zip)
-- 🪟 **Windows**: [Download MSA_Setup_v1.1.0.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.0/MSA_Setup_v1.1.0.exe)
+- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.2/MSA-Installer.dmg)
+- 🪟 **Windows**: [Download MSA_Setup_v1.1.2.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.2/MSA_Setup_v1.1.2.exe)
 
 ### Installation Steps
 
 #### macOS
 
 1. **Download** the DMG file.
-2. **Open** `MSA-Installer.zip`.
+2. **Open** `MSA-Installer.dmg`.
 3. **Drag** MSA to Applications.
 4. **Launch** from Applications.
 
 #### Windows
 
 1. **Download** the EXE file.
-2. **Run** `MSA_Setup_v1.1.0.exe`.
+2. **Run** `MSA_Setup_v1.1.2.exe`.
 3. **Follow** the setup wizard.
 4. **Launch** from Start Menu or Desktop.
 
@@ -103,23 +103,25 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ---
 
-## 🚀 What's New in v1.1.0
+## 🚀 What's New in v1.1.2
 
 ### Added
 
-- **Urgent Ticket Priority**: Tickets due today or within 24 hours now automatically float to the top of the Active list.
-- **Financial Indicators**: Added clear Credit/Debit indicators on the Client Profile.
-- **Unpaid Alert**: Added red border visual cue for unpaid tickets.
+- **Burmese Manual Complete**: The user guide is now fully translated into Burmese.
+- **Smart Priorities**: Urgent tickets now float to the top of the mobile list.
+- **UI Polish**: Added gradient aesthetics and customizable date formats.
 
 ### Changed
 
-- **Premium Mobile UI**: Complete visual overhaul with styled Language Selector, themed financial cards, and refined typography.
-- **Performance Access**: "Performance" button is now visible to Technicians but hidden for Staff/Admins on mobile profile.
+- **Comprehensive Code Review**: Full repository audit for production stability.
+- **Security Hardening**: Verified all sensitive modules for robustness.
+- **Stability Improvement**: Optimized mobile API work log synchronization.
 
 ### Fixed
 
-- **Printing Accuracy**: Fixed missing IMEI, Color, and Condition fields on printed thermal tickets.
-- **Navigation Stability**: Fixed flickering issues and optimized the "Create" FAB visibility logic.
+- **Reliability**: Fixed device tab loading, transaction crashes, and chart visibility.
+
+## 🚀 Previous in v1.1.0
 
 ---
 
@@ -210,6 +212,6 @@ MSA is proprietary software. All rights reserved.
 
 MSA is developed with ❤️ for mobile repair shop owners who want to streamline their business operations and focus on what matters most - serving their customers.
 
-**Version**: 1.1.0  
-**Build**: 1038  
-**Release Date**: December 27, 2025
+**Version**: 1.1.2  
+**Build**: 1296  
+**Release Date**: December 30, 2025
