@@ -64,10 +64,10 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ## 📥 Download & Installation
 
-### Latest Release: v1.1.2
+### Latest Release: v2.0.0
 
-- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.2/MSA-Installer.dmg)
-- 🪟 **Windows**: [Download MSA_Setup_v1.1.2.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v1.1.2/MSA_Setup_v1.1.2.exe)
+- 🍎 **macOS**: [Download MSA-Installer.dmg](https://github.com/treavorfang/msa-app-releases/releases/download/v2.0.0/MSA-Installer.dmg)
+- 🪟 **Windows**: [Download MSA_Setup_v2.0.0.exe](https://github.com/treavorfang/msa-app-releases/releases/download/v2.0.0/MSA_Setup_v2.0.0.exe)
 
 ### Installation Steps
 
@@ -81,7 +81,7 @@ MSA is a comprehensive business management solution designed specifically for mo
 #### Windows
 
 1. **Download** the EXE file.
-2. **Run** `MSA_Setup_v1.1.2.exe`.
+2. **Run** `MSA_Setup_v2.0.0.exe`.
 3. **Follow** the setup wizard.
 4. **Launch** from Start Menu or Desktop.
 
@@ -103,19 +103,19 @@ MSA is a comprehensive business management solution designed specifically for mo
 
 ---
 
-## 🚀 What's New in v1.1.2
+## 🚀 What's New in v2.0.0
 
 ### Added
 
-- **Burmese Manual Complete**: The user guide is now fully translated into Burmese.
-- **Smart Priorities**: Urgent tickets now float to the top of the mobile list.
-- **UI Polish**: Added gradient aesthetics and customizable date formats.
+- **MSA 2.0 Engine**: A completely stabilized core architecture optimized for high-performance business management.
+- **Rock-Solid Reliability**: Verified data integrity across all modules—Repair Tracking, Financials, and Inventory.
+- **Synchronized Performance**: Improved background synchronization between Desktop and Mobile interfaces.
+- **Future-Proof Core**: Enhanced system stability to support upcoming features and faster maintenance.
 
 ### Changed
 
 - **Comprehensive Code Review**: Full repository audit for production stability.
 - **Security Hardening**: Verified all sensitive modules for robustness.
-- **Stability Improvement**: Optimized mobile API work log synchronization.
 
 ### Fixed
 
@@ -212,6 +212,6 @@ MSA is proprietary software. All rights reserved.
 
 MSA is developed with ❤️ for mobile repair shop owners who want to streamline their business operations and focus on what matters most - serving their customers.
 
-**Version**: 1.1.2  
-**Build**: 1296  
-**Release Date**: December 30, 2025
+**Version**: 2.0.0  
+**Build**: 2523  
+**Release Date**: January 13, 2026
